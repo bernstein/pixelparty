@@ -1,0 +1,17 @@
+Name:                pixelparty
+Version:             0.1
+Description:         simple tool to experiment with glsl fragment shaders
+License:             GPL
+License-file:        LICENSE
+Author:              Andreas-Christoph Bernstein
+Maintainer:          andreas.bernstein@googlemail.com
+Build-Depends:       base, array, haskell98, directory,
+                      stb-image, bitmap-opengl, 
+                      OpenGLRaw, OpenGL, GLUT
+build-type:          Simple
+
+Executable:          pixelparty
+Main-is:             pixelparty.hs
+hs-source-dirs:      src
+ghc-options:         -O
+
