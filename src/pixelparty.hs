@@ -278,9 +278,9 @@ options =
   , Option "I" ["include"]   
     (ReqArg (\i opts -> opts { optIPath = optIPath opts ++ [i]}) "FILE") "shader include path"
   , Option "w" ["width"]
-    (ReqArg (\w opts -> opts { optWidth = read w}) "") "window width"
+    (ReqArg (\w opts -> opts { optWidth = read w}) "NUM") "window width"
   , Option "h" ["height"]
-    (ReqArg (\h opts -> opts { optHeight = read h}) "") "window height"
+    (ReqArg (\h opts -> opts { optHeight = read h}) "NUM") "window height"
   ]
 
 data Options = Options
