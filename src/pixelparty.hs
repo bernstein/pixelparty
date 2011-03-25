@@ -1,5 +1,9 @@
 module Main where
 
+-- TODO:
+--   add ping-pong flag:
+--     render to texture. supply that texture as an input for the next frame
+
 import Control.Applicative ((<$>), pure)
 import Control.Monad (unless, forM_)
 import Control.Exception (bracket_)
@@ -273,6 +277,10 @@ options =
     (ReqArg (\v opts -> opts { optVert = v}) "FILE") "vertex shader file name"
   , Option "I" ["include"]   
     (ReqArg (\i opts -> opts { optIPath = optIPath opts ++ [i]}) "FILE") "shader include path"
+  , Option "w" ["width"]
+    (ReqArg (\w opts -> opts { optWidth = read w}) "") "window width"
+  , Option "h" ["height"]
+    (ReqArg (\h opts -> opts { optHeight = read h}) "") "window height"
   ]
 
 data Options = Options
@@ -281,6 +289,8 @@ data Options = Options
   , optFrag         :: FilePath
   , optTextures     :: [FilePath]
   , optIPath        :: [FilePath]
+  , optWidth        :: Int
+  , optHeight       :: Int
   } deriving Show
 
 defaultOptions :: Options
@@ -290,6 +300,8 @@ defaultOptions = Options
   , optFrag = "vsfs.frag"
   , optTextures = []
   , optIPath = ["."]
+  , optWidth = 800
+  , optHeight = 600
   }
 
 processOptions :: [String] -> IO (Options, [String])
@@ -301,5 +313,5 @@ processOptions argv = case getOpt RequireOrder options argv of
 main :: IO ()
 main = do
   (opts,s) <- processOptions =<< getArgs
-  simpleGLUTinit opts display =<< initGL opts =<< openWindow "pixelparty" (600, 400)
+  simpleGLUTinit opts display =<< initGL opts =<< openWindow "pixelparty" (optWidth opts, optHeight opts)
   GLUT.mainLoop
