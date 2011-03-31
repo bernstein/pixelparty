@@ -233,7 +233,7 @@ display ref = do
   let t = currentTime state
       (Just p) = program state
   timeLoc <- GL.get $ GL.uniformLocation p "time"
-  GL.uniform timeLoc $= GL.Index1 (realToFrac t :: GL.GLfloat)
+  GL.uniform timeLoc $= GL.Index1 (realToFrac (t/1000) :: GL.GLfloat)
   GL.drawElements GL.Triangles 6 GL.UnsignedInt nullPtr
 
 reloadProgram :: Options -> PartyRef -> IO ()
