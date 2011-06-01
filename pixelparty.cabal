@@ -6,7 +6,7 @@ License-file:        LICENSE
 Author:              Andreas-Christoph Bernstein
 Maintainer:          andreas.bernstein@googlemail.com
 Build-Depends:       base, array, haskell98, directory,
-                      stb-image, bitmap-opengl, 
+                      stb-image, bitmap-opengl, containers,
                       OpenGLRaw, OpenGL, GLUT
 build-type:          Simple
 
