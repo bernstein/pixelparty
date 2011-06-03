@@ -1,4 +1,5 @@
-module Main where
+module Main 
+where
 
 -- TODO:
 --   add ping-pong flag:
@@ -25,7 +26,7 @@ import Data.Maybe (maybeToList)
 
 import qualified Graphics.UI.GLUT as GLUT
 import qualified Graphics.Rendering.OpenGL.Raw as GL
-import qualified Texture2D as T
+import qualified PixelParty.Texture2D as T
 
 type WindowHandle = GLUT.Window
 -- -----------------------------------------------------------------------------
@@ -53,9 +54,7 @@ getString e = GL.glGetString e >>= \ptr ->
 
 buffer :: (Storable a) => GL.GLenum -> GL.GLenum -> [a] -> IO GL.GLuint
 buffer target usage xs = do 
-  [b] <- allocaArray 1 $ \buf -> do
-    GL.glGenBuffers 1 buf
-    peekArray 1 buf
+  b <- gen GL.glGenBuffers
   GL.glBindBuffer target b
   withArray xs $ \ptr -> GL.glBufferData target (size xs) ptr usage
   return b
@@ -176,9 +175,7 @@ createVBO r =
 
       size as = fromIntegral (length as * sizeOf (head as))
   in do
-    [vao] <- allocaArray 1 $ \buf -> do
-      GL.glGenVertexArrays 1 buf
-      peekArray 1 buf
+    vao <- gen GL.glGenVertexArrays
     GL.glBindVertexArray vao
 
     vbo <- buffer GL.gl_ARRAY_BUFFER GL.gl_STATIC_DRAW vertices
