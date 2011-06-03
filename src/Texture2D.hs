@@ -1,68 +1,74 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Texture2D
 where
 
-import qualified Codec.Image.DevIL as IL
+import Control.Applicative ((<$>), pure)
 import Data.Array.Unboxed
 import qualified Graphics.UI.GLUT as GLUT
-import qualified Graphics.Rendering.OpenGL as OldGL
-import Graphics.Rendering.OpenGL.GL (($=),($=!))
-import qualified Graphics.Rendering.OpenGL.Raw.Core31 as GL
+import qualified Graphics.Rendering.OpenGL.Raw as GL
 import Foreign.Storable (Storable, sizeOf)
 import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
 import Foreign (nullPtr, withArray, plusPtr, sizeOf, castPtr, Ptr, withMany)
+import Data.Array.MArray (thaw)
+import Data.Array.Storable (withStorableArray)
 
-import Data.Bitmap.OpenGL
+import Data.Bitmap.IO
 import Codec.Image.STB
 
-loadTextureOld :: FilePath -> OldGL.TextureUnit -> IO (OldGL.TextureObject, OldGL.TextureUnit)
-loadTextureOld path unit = do 
+type GLTextureUnit = GL.GLenum
+type GLTextureObject = GL.GLuint
+
+loadTextureOld :: FilePath -> GLTextureUnit -> IO (GLTextureObject, GLTextureUnit)
+loadTextureOld path u = do 
   e  <- loadImage path
   case e of
     Left err -> error $ "loadTextureOld: " ++ err
-    Right im -> do
-      OldGL.activeTexture $= unit
-      t <- makeSimpleBitmapTexture im
-      return (t,unit)
+    Right bm -> do
+      GL.glActiveTexture u
+      t <- fmap head $ allocaArray 1 (\buf -> GL.glGenTextures 1 buf >> peekArray 1 buf)
+      GL.glBindTexture GL.gl_TEXTURE_2D t
+      GL.glTexParameteri GL.gl_TEXTURE_2D GL.gl_TEXTURE_MIN_FILTER (fromIntegral GL.gl_LINEAR)
+      GL.glTexParameteri GL.gl_TEXTURE_2D GL.gl_TEXTURE_MAG_FILTER (fromIntegral GL.gl_LINEAR)
 
-enableTextureOld :: (OldGL.TextureObject,OldGL.TextureUnit) -> IO ()
-enableTextureOld (t,u) = do
-  OldGL.activeTexture $= u
-  OldGL.texture OldGL.Texture2D $= OldGL.Enabled
-  OldGL.textureBinding OldGL.Texture2D $= Just t
+      withBitmap bm $ \(width,height) nchn pad ptr -> do
+        let ty = dataType2 bm
+            (pf,pif) = formatPlusInternalFormat bm
+        GL.glPixelStorei GL.gl_UNPACK_ALIGNMENT (fromIntegral (bitmapRowAlignment bm))
+        GL.glTexImage2D GL.gl_TEXTURE_2D 0 pif (fromIntegral width) (fromIntegral height) 0 pf ty ptr
 
-enableTexture :: (GL.GLuint, GL.GLenum) -> IO ()
+      return (t,u)
+
+enableTexture :: (GL.GLuint, GLTextureUnit) -> IO ()
 enableTexture (t,u) = do
   GL.glActiveTexture u
   GL.glEnable GL.gl_TEXTURE_2D
   GL.glBindTexture GL.gl_TEXTURE_2D t
 
-loadTexture :: FilePath -> IO GL.GLuint
-loadTexture path = do
-  uarr <- IL.readImage path
-  let es = elems uarr
-      (w,h,c) = snd . bounds $ uarr
-  print $ "w: " ++ show w ++ " h: " ++ show h
-  texture2d (fromIntegral w) (fromIntegral h) es
+-- -----------------------------------------------------------------------------
+-- OpenGL data type
+dataType2 :: forall t. PixelComponent t => Bitmap t -> GL.GLenum
+dataType2 _ = marshalPixelComponent (undefined::t)
 
-loadTexture' :: FilePath -> GL.GLenum -> IO (GL.GLuint, GL.GLenum)
-loadTexture' path unit = do
-  GL.glActiveTexture unit 
-  t <- loadTexture path
-  return (t, unit)
+marshalPixelComponent :: PixelComponent t => t -> GL.GLenum
+marshalPixelComponent t = case pixelComponentType t of
+  PctWord8  -> GL.gl_UNSIGNED_BYTE
+  PctWord16 -> GL.gl_UNSIGNED_SHORT
+  PctWord32 -> GL.gl_UNSIGNED_INT
+  PctFloat  -> GL.gl_FLOAT
 
-texture2d :: (Storable a) => GL.GLsizei -> GL.GLsizei -> [a] -> IO GL.GLuint
-texture2d w h xs = 
-  let level = 0
-      internalFormat = fromIntegral GL.gl_RGBA
-      border = 0
-      format = GL.gl_RGBA
-      ty = GL.gl_UNSIGNED_BYTE
-      target = GL.gl_TEXTURE_2D
-  in do 
-        t <- fmap head $ allocaArray 1 $ \buf -> GL.glGenTextures 1 buf >> peekArray 1 buf
-        GL.glBindTexture target t
-        withArray xs $ \ptr ->
-          GL.glTexImage2D target level internalFormat w h border format ty ptr
-        return t
+formatPlusInternalFormat :: forall t. PixelComponent t => Bitmap t -> (GL.GLenum, GL.GLint)
+formatPlusInternalFormat bm = 
+  case pixelComponentType (undefined::t) of 
+        PctWord8 -> case bitmapNChannels bm of
+        --  1 -> (GL.gl_ALPHA, GL.gl_ALPHA8)
+        --  2 -> (GL.gl_LUMINANCE_ALPHA, fromIntegral GL.gl_LUMINANCE8_ALPHA8)
+          3 -> (GL.gl_RGB, fromIntegral GL.gl_RGB8)
+          4 -> (GL.gl_RGBA, fromIntegral GL.gl_RGBA8)  
+        _ -> case bitmapNChannels bm of
+        --  1 -> (GL.gl_ALPHA, fromIntegral GL.gl_ALPHA)
+        --  2 -> (GL.gl_LUMINANCE_ALPHA, fromIntegral GL.gl_LUMINANCE_ALPHA)
+          3 -> (GL.gl_RGB, fromIntegral GL.gl_RGB)
+          4 -> (GL.gl_RGBA, fromIntegral GL.gl_RGBA)  
+
 
 
