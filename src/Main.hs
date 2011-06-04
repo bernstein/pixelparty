@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Main 
 where
 
@@ -10,8 +11,6 @@ import Control.Monad (unless, forM_, forM)
 import Control.Exception (bracket_)
 import System.Directory (doesFileExist)
 import System.Exit (exitWith,ExitCode(..))
-import System (getArgs)
-import System.Console.GetOpt
 import Control.Monad (when)
 import qualified Data.Map as M
 
@@ -27,8 +26,10 @@ import Data.Maybe (maybeToList)
 import qualified Graphics.UI.GLUT as GLUT
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import qualified PixelParty.Texture2D as T
+import System.Console.CmdArgs
 
 type WindowHandle = GLUT.Window
+
 -- -----------------------------------------------------------------------------
 -- helper
 -- from OpenGL-2.4.0.1/Graphics/Rendering/OpenGL/GL/Shaders.hs
@@ -77,7 +78,7 @@ data PartyState = PartyState {
   , uniforms :: M.Map String GL.GLint
   -- , sampler
   , textures :: [(GL.GLuint,GL.GLenum)]
-  , test :: GL.GLenum
+  , depthTest :: GL.GLenum
   -- , rasterizer -- viewport size, pos
   -- , draw
   , currentWidth :: Int
@@ -99,7 +100,7 @@ defaultPartyState = PartyState
   , elementBuffer = 0
   , uniforms = M.empty
   , textures = []
-  , test = GL.gl_LESS
+  , depthTest = GL.gl_LESS
   , currentWidth = 600
   , currentHeight = 600
   , windowHandle = undefined
@@ -191,13 +192,13 @@ createVBO r =
     when (errorCheckValue /= GL.gl_NO_ERROR)
       GLUT.reportErrors
 
-createShaders :: Options -> PRef -> IO ()
+createShaders :: CmdLine -> PRef -> IO ()
 createShaders opts r = do
-  let path = ".":optIPath opts
+  let path = ".":include opts
 
-  vshader <- if null (optVert opts) then return vertexShader
-              else includeFiles path =<< readFile (optVert opts)
-  fragmentShader <- includeFiles path =<< readFile (optFrag opts)
+  vshader <- if null (vshader opts) then return vertexShader
+              else includeFiles path =<< readFile (vshader opts)
+  fragmentShader <- includeFiles path =<< readFile (fshader opts)
 
   errorCheckValue <- GL.glGetError
 
@@ -223,18 +224,18 @@ createShaders opts r = do
   let m = M.fromList $ zip names ls
   modifyIORef r (\s -> s { uniforms = m })
 
-initGL :: Options -> WindowHandle -> IO PRef
+initGL :: CmdLine -> WindowHandle -> IO PRef
 initGL opts win = do
   r <- newIORef defaultPartyState
-  GL.glDepthFunc (test defaultPartyState)
+  GL.glDepthFunc (depthTest defaultPartyState)
   createShaders opts r
   createVBO r
   GL.glEnable GL.gl_TEXTURE
-  --ts <- mapM (uncurry T.loadTexture') (zip (optTextures opts) $ [GL.gl_TEXTURE0 ..])
-  ts <- mapM (uncurry T.loadTextureOld) (zip (optTextures opts) $ [GL.gl_TEXTURE0..])
+  --ts <- mapM (uncurry T.loadTexture') (zip (tex opts) $ [GL.gl_TEXTURE0 ..])
+  ts <- mapM (uncurry T.loadTextureOld) (zip (tex opts) $ [GL.gl_TEXTURE0..])
   mapM_ T.enableTexture ts
   GL.glClearColor 0.0 0.0 0.0 0.0
-  modifyIORef r (\s -> s {windowHandle = win})
+  modifyIORef r (\s -> s {windowHandle = win, vertFile = vshader opts, fragFile = fshader opts})
   return r
 
 openWindow :: String -> (Int,Int) -> IO WindowHandle
@@ -257,7 +258,7 @@ withTimer io = GLUT.addTimerCallback interval (io >> withTimer io)
 interval :: Int
 interval = 10
 
-simpleGLUTinit :: Options -> (PRef -> IO ()) -> PRef -> IO ()
+simpleGLUTinit :: CmdLine -> (PRef -> IO ()) -> PRef -> IO ()
 simpleGLUTinit opts party ref = do
   GLUT.displayCallback        GLUT.$= return ()
   GLUT.keyboardMouseCallback  GLUT.$= Just (keyboardMouseCB ref)
@@ -319,21 +320,21 @@ display r = do
   GLUT.swapBuffers
   --GLUT.postRedisplay (Just (windowHandle state))
 
-reloadProgram :: Options -> PRef -> IO ()
+reloadProgram :: CmdLine -> PRef -> IO ()
 reloadProgram opts ref = do
   state <- readIORef ref
   when (0 /= programId state) 
     (GL.glDeleteProgram . programId $ state)
 
-  let path = ".":optIPath opts
-  p <- loadProgram path (optVert opts) (optFrag opts)
+  let path = ".":include opts
+  p <- loadProgram path (vertFile state) (fragFile state)
   modifyIORef ref (\state -> state {programId = p})
   GL.glUseProgram p
 
   forM_ [0,1,2,3] $ \i -> do
     case M.lookup ("tex"++show i) (uniforms state) of
       Nothing -> return ()
-      Just loc -> GL.glUniform1i loc (fromIntegral i)
+      Just loc -> GL.glUniform1i loc i
 
   w <- currentWidth `fmap` readIORef ref
   h <- currentHeight `fmap` readIORef ref
@@ -341,38 +342,7 @@ reloadProgram opts ref = do
     Nothing -> return ()
     Just loc -> GL.glUniform2f loc (fromIntegral w) (fromIntegral h)
 
-  --GL.glBindVertexArray 
-  --GL.glBindBuffer GL.gl_ARRAY_BUFFER . arrayBuffer =<< readIORef ref
-  --GL.glBindBuffer GL.gl_ELEMENT_ARRAY_BUFFER . elementBuffer =<< readIORef ref
   print "reloadProgram : glBindVertexArray"
-
-options :: [OptDescr (Options -> Options)]
-options = 
-  [ Option "V" ["version"] 
-    (NoArg (\opts -> opts { optShowVersion = True }))   "show version number"
-  , Option "t" ["tex"]   
-    (ReqArg (\f opts -> opts { optTextures = optTextures opts ++ [f]}) "FILE") "texture name"
-  , Option "f" ["fragment"]   
-    (ReqArg (\f opts -> opts { optFrag = f}) "FILE") "fragment shader file name"
-  , Option "v" ["vertex"]   
-    (ReqArg (\v opts -> opts { optVert = v}) "FILE") "vertex shader file name"
-  , Option "I" ["include"]   
-    (ReqArg (\i opts -> opts { optIPath = optIPath opts ++ [i]}) "FILE") "shader include path"
-  , Option "w" ["width"]
-    (ReqArg (\w opts -> opts { optWidth = read w}) "NUM") "window width"
-  , Option "h" ["height"]
-    (ReqArg (\h opts -> opts { optHeight = read h}) "NUM") "window height"
-  ]
-
-data Options = Options
-  { optShowVersion  :: Bool
-  , optVert         :: FilePath
-  , optFrag         :: FilePath
-  , optTextures     :: [FilePath]
-  , optIPath        :: [FilePath]
-  , optWidth        :: Int
-  , optHeight       :: Int
-  } deriving Show
 
 vertexShader :: String
 vertexShader =
@@ -389,27 +359,29 @@ vertexShader =
   ++ "  raydir = vec3(in_position.x * 1.66667, in_position.y, -1.0);\n"
   ++ "}\n"
 
-defaultOptions :: Options
-defaultOptions = Options
-  { optShowVersion = False
-  , optVert = ""
-  , optFrag = "vsfs.frag"
-  , optTextures = []
-  , optIPath = ["."]
-  , optWidth = 600
-  , optHeight = 600
-  }
+showVersion = "1.0.0"
+data CmdLine = Fragment 
+  { fshader :: FilePath
+  , vshader :: FilePath
+  , width :: Int
+  , height :: Int
+  , include :: [String]
+  , tex :: [FilePath]
+  } deriving (Show, Data, Typeable)
 
-processOptions :: [String] -> IO (Options, [String])
-processOptions argv = case getOpt RequireOrder options argv of
-    (o, n, []) -> return (foldl' (flip id) defaultOptions o, n)
-    (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
-  where header = "Usage: pixelparty [OPTION...]"
+frag = Fragment
+  { fshader = def &= args &= typ "FRAGMENTSHADER"
+  , vshader = def &= help "Vertex Shader" &= typ "VERTEXSHADER"
+  , width = 600 &= typ "WIDTH"
+  , height = 600 &= typ "HEIGHT"
+  , include = def &= help "Include Path" &= typDir
+  , tex = def &= help "Textures" &= typ "IMAGE" &= name "tex"
+  } &= summary ("pixelparty v" ++ showVersion ++ ", (C) Andreas-C. Bernstein 2010-2011\n") &= program "pixelparty"
 
 main :: IO ()
 main = do
-  (opts,s) <- processOptions =<< getArgs
-  win <- openWindow "pixelparty" (optWidth opts, optHeight opts)
+  opts <- cmdArgs frag
+  win <- openWindow "pixelparty" (width opts , height opts)
   ref <- initGL opts win
   simpleGLUTinit opts display ref
   GLUT.mainLoop
