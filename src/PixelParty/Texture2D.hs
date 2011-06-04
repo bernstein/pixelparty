@@ -1,6 +1,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module PixelParty.Texture2D
-where
+  ( loadTexture
+  , enableTexture
+  , GLTextureUnit
+  , GLTextureObject
+  ) where
 
 import Control.Applicative ((<$>), pure)
 import Data.Array.Unboxed
@@ -17,11 +21,11 @@ import Codec.Image.STB (loadImage)
 type GLTextureUnit = GL.GLenum
 type GLTextureObject = GL.GLuint
 
-loadTextureOld :: FilePath -> GLTextureUnit -> IO (GLTextureObject, GLTextureUnit)
-loadTextureOld path u = do 
+loadTexture :: FilePath -> GLTextureUnit -> IO (GLTextureObject, GLTextureUnit)
+loadTexture path u = do 
   e  <- loadImage path
   case e of
-    Left err -> error $ "loadTextureOld: " ++ err
+    Left err -> error $ "loadTexture: " ++ err
     Right bm -> do
       GL.glActiveTexture u
       t <- fmap head $ allocaArray 1 (\buf -> GL.glGenTextures 1 buf >> peekArray 1 buf)

@@ -224,16 +224,21 @@ createShaders opts r = do
   let m = M.fromList $ zip names ls
   modifyIORef r (\s -> s { uniforms = m })
 
+createTextures :: PRef -> [FilePath] -> IO ()
+createTextures r imgs = do
+  GL.glEnable GL.gl_TEXTURE
+  ts <- mapM (uncurry T.loadTexture) (zip imgs $ [GL.gl_TEXTURE0..])
+  mapM_ T.enableTexture ts
+  modifyIORef r (\s -> s {textures = ts})
+
 initGL :: CmdLine -> WindowHandle -> IO PRef
 initGL opts win = do
   r <- newIORef defaultPartyState
   GL.glDepthFunc (depthTest defaultPartyState)
   createShaders opts r
   createVBO r
-  GL.glEnable GL.gl_TEXTURE
-  --ts <- mapM (uncurry T.loadTexture') (zip (tex opts) $ [GL.gl_TEXTURE0 ..])
-  ts <- mapM (uncurry T.loadTextureOld) (zip (tex opts) $ [GL.gl_TEXTURE0..])
-  mapM_ T.enableTexture ts
+  createTextures r (tex opts)
+
   GL.glClearColor 0.0 0.0 0.0 0.0
   modifyIORef r (\s -> s {windowHandle = win, vertFile = vshader opts, fragFile = fshader opts})
   return r
