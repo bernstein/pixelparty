@@ -25,3 +25,4 @@ Executable pixelparty
                   cmdargs
     other-modules:
         PixelParty.Texture2D
+        CmdLine

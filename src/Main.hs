@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 module Main 
 where
 
@@ -27,6 +26,7 @@ import qualified Graphics.UI.GLUT as GLUT
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import qualified PixelParty.Texture2D as T
 import System.Console.CmdArgs
+import CmdLine
 
 type WindowHandle = GLUT.Window
 
@@ -359,29 +359,10 @@ vertexShader =
   ++ "  raydir = vec3(in_position.x * 1.66667, in_position.y, -1.0);\n"
   ++ "}\n"
 
-showVersion = "1.0.0"
-data CmdLine = Fragment 
-  { fshader :: FilePath
-  , vshader :: FilePath
-  , width :: Int
-  , height :: Int
-  , include :: [String]
-  , tex :: [FilePath]
-  } deriving (Show, Data, Typeable)
-
-frag = Fragment
-  { fshader = def &= args &= typ "FRAGMENTSHADER"
-  , vshader = def &= help "Vertex Shader" &= typ "VERTEXSHADER"
-  , width = 600 &= typ "WIDTH"
-  , height = 600 &= typ "HEIGHT"
-  , include = def &= help "Include Path" &= typDir
-  , tex = def &= help "Textures" &= typ "IMAGE" &= name "tex"
-  } &= summary ("pixelparty v" ++ showVersion ++ ", (C) Andreas-C. Bernstein 2010-2011\n") &= program "pixelparty"
-
 main :: IO ()
 main = do
-  opts <- cmdArgs frag
-  win <- openWindow "pixelparty" (width opts , height opts)
-  ref <- initGL opts win
-  simpleGLUTinit opts display ref
+  c <- cmdLine
+  win <- openWindow "pixelparty" (width c , height c)
+  ref <- initGL c win
+  simpleGLUTinit c display ref
   GLUT.mainLoop
