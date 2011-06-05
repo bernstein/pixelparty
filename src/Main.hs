@@ -5,21 +5,16 @@ where
 --   add ping-pong flag:
 --     render to texture. supply that texture as an input for the next frame
 
-import Control.Applicative ((<$>), pure)
-import Control.Monad (forM_, forM)
 import Control.Exception (bracket_)
-import Control.Monad (when)
+import Control.Monad (when, forM_)
 import qualified Data.Map as M
 
-import Foreign.Storable (Storable)
 import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
-import Foreign (nullPtr, withArray, sizeOf, castPtr, Ptr, withMany)
-import Foreign.C.String (peekCString, withCAStringLen, withCAString)
-import System.Console.CmdArgs
+import Foreign (Storable, nullPtr, withArray, sizeOf, castPtr, Ptr)
+import Foreign.C.String (peekCString, withCAString)
 
 import Data.IORef (newIORef, modifyIORef, readIORef)
 import Data.List (foldl')
-import Data.Maybe (maybeToList)
 
 import qualified Graphics.UI.GLUT as GLUT
 import qualified Graphics.Rendering.OpenGL.Raw as GL
@@ -28,25 +23,11 @@ import qualified PixelParty.Texture2D as T
 import CmdLine
 import Types
 import ShaderIncludes
+import Shader
 
 -- -----------------------------------------------------------------------------
 -- helper
 -- from OpenGL-2.4.0.1/Graphics/Rendering/OpenGL/GL/Shaders.hs
-
-type GLStringLen = (Ptr GL.GLchar, GL.GLsizei)
-
-withGLStringLen :: String -> (GLStringLen -> IO a) -> IO a
-withGLStringLen s act = withCAStringLen s $ 
-  \(p,len) -> act (castPtr p, fromIntegral len)
-
-setShaderSource :: GL.GLuint -> [String] -> IO ()
-setShaderSource shader srcs = do
-   let len = fromIntegral . length $ srcs
-   withMany withGLStringLen srcs $ \charBufsAndLengths -> do
-      let (charBufs, lengths) = unzip charBufsAndLengths
-      withArray charBufs $ \charBufsBuf ->
-         withArray (map fromIntegral lengths) $ \lengthsBuf ->
-            GL.glShaderSource shader len charBufsBuf lengthsBuf
 
 getString :: GL.GLenum -> IO String
 getString e = GL.glGetString e >>= \ptr ->
@@ -76,24 +57,6 @@ reshapeCB r s@(GLUT.Size w h) = do
     Nothing -> return ()
     Just loc -> GL.glUniform2f loc (fromIntegral w) (fromIntegral h)
 
-loadProgram :: [String] -> FilePath -> FilePath -> IO GL.GLuint
-loadProgram path vs fs = do
-  vshader <- if null vs then return vertexShader
-              else includeFiles path =<< readFile vs
-  v <- GL.glCreateShader GL.gl_VERTEX_SHADER
-  setShaderSource v [vshader]
-  GL.glCompileShader v
-
-  fragmentShader <- includeFiles path =<< readFile fs
-  f <- GL.glCreateShader GL.gl_FRAGMENT_SHADER
-  setShaderSource f [fragmentShader]
-  GL.glCompileShader f
-  progId <- GL.glCreateProgram
-  GL.glAttachShader progId v 
-  GL.glAttachShader progId f 
-  GL.glLinkProgram progId
-  return progId
-
 createVBO :: PRef -> IO ()
 createVBO r = 
   let vertices :: [GL.GLfloat]
@@ -122,44 +85,36 @@ createVBO r =
     when (errorCheckValue /= GL.gl_NO_ERROR)
       GLUT.reportErrors
 
+createTextures :: PRef -> [FilePath] -> IO ()
+createTextures r imgs = do
+  GL.glEnable GL.gl_TEXTURE
+  ts <- mapM (uncurry T.loadTexture) (zip imgs [GL.gl_TEXTURE0..])
+  mapM_ T.enableTexture ts
+  modifyIORef r (\s -> s {textures = ts})
+
 createShaders :: CmdLine -> PRef -> IO ()
 createShaders opts r = do
   let path = ".":include opts
 
-  vshader <- if null (vshader opts) then return vertexShader
+  vs <- if null (vshader opts) then return vertexShader
               else includeFiles path =<< readFile (vshader opts)
-  fragmentShader <- includeFiles path =<< readFile (fshader opts)
+  fs <- includeFiles path =<< readFile (fshader opts)
 
   errorCheckValue <- GL.glGetError
 
-  v <- GL.glCreateShader GL.gl_VERTEX_SHADER
-  setShaderSource v [vshader]
-  GL.glCompileShader v
+  (v,f,p) <- loadProgram vs fs
+  GL.glUseProgram p
+  modifyIORef r (\s -> s{programId = p, vertexShaderId = v, fragmentShaderId = f})
 
-  f <- GL.glCreateShader GL.gl_FRAGMENT_SHADER
-  setShaderSource f [fragmentShader]
-  GL.glCompileShader f
-
-  progId <- GL.glCreateProgram
-  GL.glAttachShader progId v 
-  GL.glAttachShader progId f 
-  GL.glLinkProgram progId
-  GL.glUseProgram progId
-  modifyIORef r (\s -> s{programId = progId, vertexShaderId = v, fragmentShaderId = f})
-
-  let names = ["resolution","time","tex0","tex1","tex2","tex3"]
-  ls <- forM names $ \name -> do
-     withCAString name $ 
-       GL.glGetUniformLocation progId . castPtr
+  let names = ["resolution","time","mouse","tex0","tex1","tex2","tex3"]
+  ls <- mapM (uniformLoc p) names
   let m = M.fromList $ zip names ls
   modifyIORef r (\s -> s { uniforms = m })
 
-createTextures :: PRef -> [FilePath] -> IO ()
-createTextures r imgs = do
-  GL.glEnable GL.gl_TEXTURE
-  ts <- mapM (uncurry T.loadTexture) (zip imgs $ [GL.gl_TEXTURE0..])
-  mapM_ T.enableTexture ts
-  modifyIORef r (\s -> s {textures = ts})
+  forM_ [0,1,2,3] $ \i ->
+    case M.lookup ("tex"++show i) m of
+      Nothing -> return ()
+      Just loc -> GL.glUniform1i loc i
 
 initialize :: PRef -> CmdLine -> WindowHandle -> IO ()
 initialize r opts win = do
@@ -207,9 +162,14 @@ simpleGLUTinit opts party ref = do
       case (k,ks) of
         (GLUT.Char '\ESC', GLUT.Down) -> GLUT.leaveMainLoop
         (GLUT.Char 'r', GLUT.Down) -> reloadProgram opts ref
+        --(GLUT.Char 'R', GLUT.Down) -> resetTime opts ref
         _ -> return () -- putStrLn ("k: " ++ show k ++ ", ks: " ++ show ks)
 
-    mouseCB ref (GLUT.Position x y) =
+    mouseCB ref (GLUT.Position x y) = do
+      state <- readIORef ref
+      case M.lookup "mouse" (uniforms state) of
+        Nothing -> return ()
+        Just loc -> GL.glUniform2f loc (fromIntegral x) (fromIntegral y)
       modifyIORef ref (\s -> s {mousePosition = (fromIntegral x, fromIntegral y)})
 
 idleFunction :: PRef -> IO ()
@@ -263,7 +223,6 @@ display :: PRef -> IO ()
 display r = do
   state <- readIORef r
   let t = currentTime state
-      p = programId state
   case M.lookup "time" (uniforms state) of
     Nothing -> return ()
     Just loc -> GL.glUniform1f loc (realToFrac (t/1000))
@@ -271,45 +230,6 @@ display r = do
   GL.glDrawElements GL.gl_TRIANGLES 6 GL.gl_UNSIGNED_BYTE nullPtr
   GLUT.swapBuffers
   GLUT.postRedisplay (Just (windowHandle state))
-
-reloadProgram :: CmdLine -> PRef -> IO ()
-reloadProgram opts ref = do
-  state <- readIORef ref
-  when (0 /= programId state) 
-    (GL.glDeleteProgram . programId $ state)
-
-  let path = ".":include opts
-  p <- loadProgram path (vertFile state) (fragFile state)
-  modifyIORef ref (\state -> state {programId = p})
-  GL.glUseProgram p
-
-  forM_ [0,1,2,3] $ \i -> do
-    case M.lookup ("tex"++show i) (uniforms state) of
-      Nothing -> return ()
-      Just loc -> GL.glUniform1i loc i
-
-  w <- currentWidth `fmap` readIORef ref
-  h <- currentHeight `fmap` readIORef ref
-  case M.lookup "resolution" (uniforms state) of
-    Nothing -> return ()
-    Just loc -> GL.glUniform2f loc (fromIntegral w) (fromIntegral h)
-
-  print "reloadProgram : glBindVertexArray"
-
-vertexShader :: String
-vertexShader =
-     "#version 330\n"
-  ++ "layout(location=0) in vec4 in_position;\n"
-  ++ "smooth out vec2 tc;\n"
-  ++ "smooth out vec3 origin;\n"
-  ++ "smooth out vec3 raydir;\n"
-  ++ "void main(void)\n"
-  ++ "{\n"
-  ++ "  tc = in_position.xy;\n"
-  ++ "  gl_Position = in_position;\n"
-  ++ "  origin = vec3(0.0);\n"
-  ++ "  raydir = vec3(in_position.x * 1.66667, in_position.y, -1.0);\n"
-  ++ "}\n"
 
 main :: IO ()
 main = do
