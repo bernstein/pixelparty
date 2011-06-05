@@ -1,20 +1,12 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 module CmdLine
   ( CmdLine(..)
   , cmdLine
   ) where
 
+import Types
 import System.Console.CmdArgs
 
 showVersion = "1.0.0"
-data CmdLine = Fragment 
-  { fshader :: FilePath
-  , vshader :: FilePath
-  , width :: Int
-  , height :: Int
-  , include :: [String]
-  , tex :: [FilePath]
-  } deriving (Show, Data, Typeable)
 
 frag = Fragment
   { fshader = def &= args &= typ "FRAGMENTSHADER"
