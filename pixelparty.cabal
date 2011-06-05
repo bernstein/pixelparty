@@ -9,8 +9,13 @@ category:           Graphics
 author:             Andreas-Christoph Bernstein
 maintainer:         andreas.bernstein@googlemail.com
 copyright:          Andreas-Christoph Bernstein 2010-2011
+homepage:           http://github.com/bernstein/pixelparty/
 stability:          Beta
 extra-source-files: README
+
+source-repository head
+  type: git
+  location: git://github.com/bernstein/pixelparty.git
 
 Executable pixelparty
     Main-is:            Main.hs
