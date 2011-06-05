@@ -24,6 +24,7 @@ Executable pixelparty
                         CmdLine
                         Types
                         ShaderIncludes
+                        Shader
     hs-source-dirs:      src
     ghc-options:         -O
 
