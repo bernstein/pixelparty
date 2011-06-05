@@ -3,6 +3,8 @@ where
 
 import Data.IORef (IORef(..), newIORef, modifyIORef, readIORef)
 import qualified Graphics.Rendering.OpenGL.Raw as GL
+import qualified Data.Map as M
+import qualified Graphics.UI.GLUT as GLUT
 
 type PRef = IORef PartyState
 
