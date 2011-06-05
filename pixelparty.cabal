@@ -10,9 +10,13 @@ author:             Andreas-Christoph Bernstein
 maintainer:         andreas.bernstein@googlemail.com
 copyright:          Andreas-Christoph Bernstein 2010-2011
 stability:          Beta
+extra-source-files: README
 
 Executable pixelparty
-    Main-is:             Main.hs
+    Main-is:            Main.hs
+    other-modules:
+                        PixelParty.Texture2D
+                        CmdLine
     hs-source-dirs:      src
     ghc-options:         -O
 
@@ -23,6 +27,3 @@ Executable pixelparty
                   containers, array,
                   OpenGLRaw, GLUT, 
                   cmdargs
-    other-modules:
-        PixelParty.Texture2D
-        CmdLine

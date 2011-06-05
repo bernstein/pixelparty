@@ -231,9 +231,8 @@ createTextures r imgs = do
   mapM_ T.enableTexture ts
   modifyIORef r (\s -> s {textures = ts})
 
-initGL :: CmdLine -> WindowHandle -> IO PRef
-initGL opts win = do
-  r <- newIORef defaultPartyState
+initialize :: PRef -> CmdLine -> WindowHandle -> IO ()
+initialize r opts win = do
   GL.glDepthFunc (depthTest defaultPartyState)
   createShaders opts r
   createVBO r
@@ -241,11 +240,11 @@ initGL opts win = do
 
   GL.glClearColor 0.0 0.0 0.0 0.0
   modifyIORef r (\s -> s {windowHandle = win, vertFile = vshader opts, fragFile = fshader opts})
-  return r
 
 openWindow :: String -> (Int,Int) -> IO WindowHandle
 openWindow title (w,h) = do
   GLUT.getArgsAndInitialize
+  GLUT.actionOnWindowClose GLUT.$= GLUT.MainLoopReturns
   GLUT.initialDisplayMode GLUT.$= [ GLUT.DoubleBuffered
                               , GLUT.RGBAMode
                               , GLUT.WithDepthBuffer
@@ -270,11 +269,12 @@ simpleGLUTinit opts party ref = do
   GLUT.motionCallback         GLUT.$= Just (mouseCB ref)
   GLUT.passiveMotionCallback  GLUT.$= Just (mouseCB ref)
   GLUT.reshapeCallback        GLUT.$= Just (reshapeCB ref)
+  GLUT.closeCallback          GLUT.$= Just (cleanup ref)
   withTimer (party ref >> step ref)
   where 
     keyboardMouseCB ref k ks mod pos =
       case (k,ks) of
-        (GLUT.Char '\ESC', GLUT.Down) -> cleanup ref >> exitWith ExitSuccess
+        (GLUT.Char '\ESC', GLUT.Down) -> GLUT.leaveMainLoop
         (GLUT.Char 'r', GLUT.Down) -> reloadProgram opts ref
         _ -> return () -- putStrLn ("k: " ++ show k ++ ", ks: " ++ show ks)
 
@@ -367,7 +367,8 @@ vertexShader =
 main :: IO ()
 main = do
   c <- cmdLine
+  r <- newIORef defaultPartyState
   win <- openWindow "pixelparty" (width c , height c)
-  ref <- initGL c win
-  simpleGLUTinit c display ref
+  initialize r c win
+  simpleGLUTinit c display r
   GLUT.mainLoop
