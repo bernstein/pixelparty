@@ -2,8 +2,6 @@
 module PixelParty.Texture2D
   ( loadTexture
   , enableTexture
-  , GLTextureUnit
-  , GLTextureObject
   ) where
 
 import Control.Applicative ((<$>), pure)
