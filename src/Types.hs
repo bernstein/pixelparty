@@ -1,33 +1,51 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Types
 where
 
+import System.Console.CmdArgs (Data, Typeable)
 import Data.IORef (IORef(..), newIORef, modifyIORef, readIORef)
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import qualified Data.Map as M
 import qualified Graphics.UI.GLUT as GLUT
 
+type GLFragmentShader = GL.GLuint
+type GLVertexShader = GL.GLuint
+type GLProgram = GL.GLuint
+type GLTextureUnit = GL.GLenum
+
+type ErrorIO a = ErrorT String IO a
+
 type PRef = IORef PartyState
 
+data CmdLine = Fragment 
+  { fshader :: FilePath
+  , vshader :: FilePath
+  , width :: Int
+  , height :: Int
+  , include :: [String]
+  , tex :: [FilePath]
+  } deriving (Show, Data, Typeable)
+
 data PartyState = PartyState {
-    currentTime   :: Float
+    currentTime   :: !Float
   , mousePosition :: (Double,Double)
 
   -- opengl stuff
-  , vertexShaderId :: GL.GLuint
-  , fragmentShaderId :: GL.GLuint
-  , programId       :: GL.GLuint
-  , vaoId :: GL.GLuint
-  , arrayBuffer   :: GL.GLuint
-  , elementBuffer :: GL.GLuint
+  , vertexShaderId :: !GL.GLuint
+  , fragmentShaderId :: !GL.GLuint
+  , programId       :: !GL.GLuint
+  , vaoId :: !GL.GLuint
+  , arrayBuffer   :: !GL.GLuint
+  , elementBuffer :: !GL.GLuint
   , uniforms :: M.Map String GL.GLint
   -- , sampler
   , textures :: [(GL.GLuint,GL.GLenum)]
   , depthTest :: GL.GLenum
   -- , rasterizer -- viewport size, pos
   -- , draw
-  , frameCount :: Int
-  , currentWidth :: Int
-  , currentHeight :: Int
+  , frameCount :: !Int
+  , currentWidth :: !Int
+  , currentHeight :: !Int
   , windowHandle :: WindowHandle
   , vertFile :: FilePath
   , fragFile :: FilePath
