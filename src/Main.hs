@@ -6,25 +6,25 @@ where
 --     render to texture. supply that texture as an input for the next frame
 
 import Control.Applicative ((<$>), pure)
-import Control.Monad (unless, forM_, forM)
+import Control.Monad (forM_, forM)
 import Control.Exception (bracket_)
-import System.Exit (exitWith,ExitCode(..))
 import Control.Monad (when)
 import qualified Data.Map as M
 
-import Foreign.Storable (Storable, sizeOf)
+import Foreign.Storable (Storable)
 import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
-import Foreign (nullPtr, withArray, plusPtr, sizeOf, castPtr, Ptr, withMany)
+import Foreign (nullPtr, withArray, sizeOf, castPtr, Ptr, withMany)
 import Foreign.C.String (peekCString, withCAStringLen, withCAString)
+import System.Console.CmdArgs
 
-import Data.IORef (IORef(..), newIORef, modifyIORef, readIORef)
+import Data.IORef (newIORef, modifyIORef, readIORef)
 import Data.List (foldl')
 import Data.Maybe (maybeToList)
 
 import qualified Graphics.UI.GLUT as GLUT
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import qualified PixelParty.Texture2D as T
-import System.Console.CmdArgs
+
 import CmdLine
 import Types
 import ShaderIncludes
