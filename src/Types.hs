@@ -13,7 +13,7 @@ type GLVertexShader = GL.GLuint
 type GLProgram = GL.GLuint
 type GLTextureUnit = GL.GLenum
 
-type ErrorIO a = ErrorT String IO a
+--type ErrorIO a = ErrorT String IO a
 
 type PRef = IORef PartyState
 
