@@ -8,7 +8,6 @@ where
 import Control.Applicative ((<$>), pure)
 import Control.Monad (unless, forM_, forM)
 import Control.Exception (bracket_)
-import System.Directory (doesFileExist)
 import System.Exit (exitWith,ExitCode(..))
 import Control.Monad (when)
 import qualified Data.Map as M
@@ -27,8 +26,8 @@ import qualified Graphics.Rendering.OpenGL.Raw as GL
 import qualified PixelParty.Texture2D as T
 import System.Console.CmdArgs
 import CmdLine
-
-type WindowHandle = GLUT.Window
+import Types
+import ShaderIncludes
 
 -- -----------------------------------------------------------------------------
 -- helper
@@ -62,54 +61,6 @@ buffer target usage xs = do
 
 -- -----------------------------------------------------------------------------
 
-type PRef = IORef PartyState
-
-data PartyState = PartyState {
-    currentTime   :: Float
-  , mousePosition :: (Double,Double)
-
-  -- opengl stuff
-  , vertexShaderId :: GL.GLuint
-  , fragmentShaderId :: GL.GLuint
-  , programId       :: GL.GLuint
-  , vaoId :: GL.GLuint
-  , arrayBuffer   :: GL.GLuint
-  , elementBuffer :: GL.GLuint
-  , uniforms :: M.Map String GL.GLint
-  -- , sampler
-  , textures :: [(GL.GLuint,GL.GLenum)]
-  , depthTest :: GL.GLenum
-  -- , rasterizer -- viewport size, pos
-  -- , draw
-  , frameCount :: Int
-  , currentWidth :: Int
-  , currentHeight :: Int
-  , windowHandle :: WindowHandle
-  , vertFile :: FilePath
-  , fragFile :: FilePath
-  }
-
-defaultPartyState :: PartyState
-defaultPartyState = PartyState
-  { currentTime = 0
-  , mousePosition = (0,0)
-  , vertexShaderId = 0
-  , fragmentShaderId = 0
-  , programId = 0
-  , vaoId = 0
-  , arrayBuffer = 0
-  , elementBuffer = 0
-  , uniforms = M.empty
-  , textures = []
-  , depthTest = GL.gl_LESS
-  , frameCount = 0
-  , currentWidth = 600
-  , currentHeight = 600
-  , windowHandle = undefined
-  , vertFile = ""
-  , fragFile = ""
-  }
-
 gens :: (GL.GLsizei -> Ptr GL.GLuint -> IO ()) -> Int -> IO GL.GLuint
 gens what n = fmap head $ allocaArray n $ \buf -> what (fromIntegral n) buf >> peekArray n buf
 
@@ -124,32 +75,6 @@ reshapeCB r s@(GLUT.Size w h) = do
   case M.lookup "resolution" (uniforms state) of
     Nothing -> return ()
     Just loc -> GL.glUniform2f loc (fromIntegral w) (fromIntegral h)
-
-includeFiles :: [String] -> String -> IO String
-includeFiles path = pp path . lines
-
--- inspired by cpphs
-pp :: [String] -> [String] -> IO String
-pp _ [] = return []
-pp path (l@('#':x):xs) = 
-  let ws = words x
-      cmd = head ws
-      line = tail ws
-      file ('"':ns) = init ns
-      file ('<':ns) = init ns
-      file _ = error "unknown include file"
-  in  case cmd of
-    "include" -> do (content) <- readFirstFound (file (unwords line)) path
-                    pp path (lines content ++ xs)
-    _ -> ((l++"\n")++) <$> pp path xs
-pp path (x:xs) = ((x++"\n")++) <$> pp path xs
-
-readFirstFound :: String -> [String] -> IO String
-readFirstFound name [] = error $ "Warning: Can't find file " ++ name
-readFirstFound name (p:ps) = do 
-  let file = p ++ '/':name
-  b <- doesFileExist file
-  if b then readFile file else readFirstFound name ps 
 
 loadProgram :: [String] -> FilePath -> FilePath -> IO GL.GLuint
 loadProgram path vs fs = do
