@@ -81,6 +81,7 @@ data PartyState = PartyState {
   , depthTest :: GL.GLenum
   -- , rasterizer -- viewport size, pos
   -- , draw
+  , frameCount :: Int
   , currentWidth :: Int
   , currentHeight :: Int
   , windowHandle :: WindowHandle
@@ -101,6 +102,7 @@ defaultPartyState = PartyState
   , uniforms = M.empty
   , textures = []
   , depthTest = GL.gl_LESS
+  , frameCount = 0
   , currentWidth = 600
   , currentHeight = 600
   , windowHandle = undefined
@@ -108,8 +110,11 @@ defaultPartyState = PartyState
   , fragFile = ""
   }
 
+gens :: (GL.GLsizei -> Ptr GL.GLuint -> IO ()) -> Int -> IO GL.GLuint
+gens what n = fmap head $ allocaArray n $ \buf -> what (fromIntegral n) buf >> peekArray n buf
+
 gen :: (GL.GLsizei -> Ptr GL.GLuint -> IO ()) -> IO GL.GLuint
-gen what = fmap head $ allocaArray 1 $ \buf -> what 1 buf >> peekArray 1 buf
+gen what = gens what 1
 
 reshapeCB :: PRef -> GLUT.Size -> IO ()
 reshapeCB r s@(GLUT.Size w h) = do
@@ -264,13 +269,14 @@ interval = 10
 
 simpleGLUTinit :: CmdLine -> (PRef -> IO ()) -> PRef -> IO ()
 simpleGLUTinit opts party ref = do
-  GLUT.displayCallback        GLUT.$= return ()
+  GLUT.displayCallback        GLUT.$= (modifyIORef ref (\s -> s{frameCount = frameCount s + 1}) >> party ref >> step ref)
+  GLUT.idleCallback           GLUT.$= Just (idleFunction ref)
   GLUT.keyboardMouseCallback  GLUT.$= Just (keyboardMouseCB ref)
   GLUT.motionCallback         GLUT.$= Just (mouseCB ref)
   GLUT.passiveMotionCallback  GLUT.$= Just (mouseCB ref)
   GLUT.reshapeCallback        GLUT.$= Just (reshapeCB ref)
   GLUT.closeCallback          GLUT.$= Just (cleanup ref)
-  withTimer (party ref >> step ref)
+  GLUT.addTimerCallback       0 (timerFunction ref)
   where 
     keyboardMouseCB ref k ks mod pos =
       case (k,ks) of
@@ -280,6 +286,23 @@ simpleGLUTinit opts party ref = do
 
     mouseCB ref (GLUT.Position x y) =
       modifyIORef ref (\s -> s {mousePosition = (fromIntegral x, fromIntegral y)})
+
+idleFunction :: PRef -> IO ()
+idleFunction r = do
+  state <- readIORef r
+  GLUT.postRedisplay (Just (windowHandle state))
+
+windowTitle :: String
+windowTitle = "pixelparty"
+
+timerFunction :: PRef -> IO ()
+timerFunction r = do
+  state <- readIORef r
+  let tempString = windowTitle ++ ": " ++ show (4 * frameCount state) ++ " Frames Per Second @ " ++ show (currentWidth state) ++ " x " ++ show (currentHeight state)
+  GLUT.windowTitle GLUT.$= tempString
+
+  modifyIORef r (\s -> s { frameCount = 0 })
+  GLUT.addTimerCallback 250 (timerFunction r)
 
 cleanup :: PRef -> IO ()
 cleanup ref = do
@@ -316,14 +339,13 @@ display r = do
   state <- readIORef r
   let t = currentTime state
       p = programId state
-  --GL.glBindVertexArray (vaoId state)
   case M.lookup "time" (uniforms state) of
     Nothing -> return ()
     Just loc -> GL.glUniform1f loc (realToFrac (t/1000))
   GL.glClear . sum . map fromIntegral $ [GL.gl_COLOR_BUFFER_BIT, GL.gl_DEPTH_BUFFER_BIT]
   GL.glDrawElements GL.gl_TRIANGLES 6 GL.gl_UNSIGNED_BYTE nullPtr
   GLUT.swapBuffers
-  --GLUT.postRedisplay (Just (windowHandle state))
+  GLUT.postRedisplay (Just (windowHandle state))
 
 reloadProgram :: CmdLine -> PRef -> IO ()
 reloadProgram opts ref = do
@@ -368,7 +390,7 @@ main :: IO ()
 main = do
   c <- cmdLine
   r <- newIORef defaultPartyState
-  win <- openWindow "pixelparty" (width c , height c)
+  win <- openWindow windowTitle (width c , height c)
   initialize r c win
   simpleGLUTinit c display r
   GLUT.mainLoop

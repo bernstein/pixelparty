@@ -17,6 +17,7 @@ Executable pixelparty
     other-modules:
                         PixelParty.Texture2D
                         CmdLine
+                        Types
     hs-source-dirs:      src
     ghc-options:         -O
 
