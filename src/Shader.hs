@@ -106,7 +106,7 @@ withGLStringLen s act = withCAStringLen s $
   \(p,len) -> act (castPtr p, fromIntegral len)
 
 maybeSetUniform :: Maybe GL.GLint -> (GL.GLint -> t -> IO ()) -> t -> IO ()
-maybeSetUniform m set val = maybe (return ()) (\loc -> set loc val) m
+maybeSetUniform m set val = maybe (return ()) (`set` val) m
 
 -- reloadProgram :: IO (Eiter String (Vert,Frag,Prog))
 --
