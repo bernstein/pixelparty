@@ -30,7 +30,7 @@ Executable pixelparty
 
     Build-Depends:       
                   base, array, haskell98, 
-                  directory,
+                  directory, time,
                   stb-image, bitmap, 
                   containers, array,
                   OpenGLRaw, GLUT, 

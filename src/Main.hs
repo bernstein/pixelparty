@@ -18,7 +18,8 @@ import Data.List (foldl')
 
 import qualified Graphics.UI.GLUT as GLUT
 import qualified Graphics.Rendering.OpenGL.Raw as GL
-import qualified PixelParty.Texture2D as T
+import qualified PixelParty.Texture2D as Tex
+import qualified Data.Time as T
 
 import CmdLine
 import Types
@@ -88,8 +89,8 @@ createVBO r =
 createTextures :: PRef -> [FilePath] -> IO ()
 createTextures r imgs = do
   GL.glEnable GL.gl_TEXTURE
-  ts <- mapM (uncurry T.loadTexture) (zip imgs [GL.gl_TEXTURE0..])
-  mapM_ T.enableTexture ts
+  ts <- mapM (uncurry Tex.loadTexture) (zip imgs [GL.gl_TEXTURE0..])
+  mapM_ Tex.enableTexture ts
   modifyIORef r (\s -> s {textures = ts})
 
 createShaders :: CmdLine -> PRef -> IO ()
@@ -137,19 +138,9 @@ openWindow title (w,h) = do
   GLUT.initialWindowSize GLUT.$= GLUT.Size (fromIntegral w) (fromIntegral h)
   GLUT.createWindow title
 
-step :: PRef -> IO ()
-step ref = modifyIORef ref (inc interval)
-  where inc dt state = state { currentTime = currentTime state + fromIntegral dt}
-
-withTimer :: IO () -> IO ()
-withTimer io = GLUT.addTimerCallback interval (io >> withTimer io)
-
-interval :: Int
-interval = 10
-
 simpleGLUTinit :: CmdLine -> (PRef -> IO ()) -> PRef -> IO ()
 simpleGLUTinit opts party ref = do
-  GLUT.displayCallback        GLUT.$= (modifyIORef ref (\s -> s{frameCount = frameCount s + 1}) >> party ref >> step ref)
+  GLUT.displayCallback        GLUT.$= (modifyIORef ref (\s -> s{frameCount = frameCount s + 1}) >> party ref)
   GLUT.idleCallback           GLUT.$= Just (idleFunction ref)
   GLUT.keyboardMouseCallback  GLUT.$= Just (keyboardMouseCB ref)
   GLUT.motionCallback         GLUT.$= Just (mouseCB ref)
@@ -170,7 +161,6 @@ simpleGLUTinit opts party ref = do
       case M.lookup "mouse" (uniforms state) of
         Nothing -> return ()
         Just loc -> GL.glUniform2f loc (fromIntegral x) (fromIntegral y)
-      modifyIORef ref (\s -> s {mousePosition = (fromIntegral x, fromIntegral y)})
 
 idleFunction :: PRef -> IO ()
 idleFunction r = do
@@ -222,10 +212,11 @@ size as = fromIntegral (length as * sizeOf (head as))
 display :: PRef -> IO ()
 display r = do
   state <- readIORef r
-  let t = currentTime state
+  now <- T.getCurrentTime
+  let t = T.diffUTCTime now (startTime state)
   case M.lookup "time" (uniforms state) of
     Nothing -> return ()
-    Just loc -> GL.glUniform1f loc (realToFrac (t/1000))
+    Just loc -> GL.glUniform1f loc (realToFrac t)
   GL.glClear . sum . map fromIntegral $ [GL.gl_COLOR_BUFFER_BIT, GL.gl_DEPTH_BUFFER_BIT]
   GL.glDrawElements GL.gl_TRIANGLES 6 GL.gl_UNSIGNED_BYTE nullPtr
   GLUT.swapBuffers
@@ -234,7 +225,9 @@ display r = do
 main :: IO ()
 main = do
   c <- cmdLine
-  r <- newIORef defaultPartyState
+
+  now <- T.getCurrentTime
+  r <- newIORef defaultPartyState { startTime = now }
   win <- openWindow windowTitle (width c , height c)
   initialize r c win
   simpleGLUTinit c display r
