@@ -68,7 +68,6 @@ createVBO r =
       indices :: [GL.GLubyte]
       indices = [0,1,2,0,2,3]
 
-      size as = fromIntegral (length as * sizeOf (head as))
   in do
     vao <- gen GL.glGenVertexArrays
     GL.glBindVertexArray vao
