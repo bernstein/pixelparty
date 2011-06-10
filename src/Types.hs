@@ -51,7 +51,7 @@ data PartyState = PartyState {
   , frameCount :: !Int
   , currentWidth :: !Int -- unnecessary ?
   , currentHeight :: !Int -- unnecessary ?
-  , windowHandle :: WindowHandle
+  , windowHandle :: Maybe WindowHandle
   , vertFile :: FilePath -- unnecessary ?
   , fragFile :: FilePath -- unnecessary ?
   , startTime :: !T.UTCTime
@@ -72,7 +72,7 @@ defaultPartyState = PartyState
   , frameCount = 0
   , currentWidth = 600
   , currentHeight = 600
-  , windowHandle = undefined
+  , windowHandle = Nothing
   , vertFile = ""
   , fragFile = ""
   , startTime = T.UTCTime (T.ModifiedJulianDay 0) 0 -- 1858-11-17 00:00:00 UTC

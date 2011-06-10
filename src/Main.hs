@@ -125,7 +125,7 @@ initialize r opts win = do
   createTextures r (tex opts)
 
   GL.glClearColor 0.0 0.0 0.0 0.0
-  modifyIORef r (\s -> s {windowHandle = win, vertFile = vshader opts, fragFile = fshader opts})
+  modifyIORef r (\s -> s {windowHandle = Just win, vertFile = vshader opts, fragFile = fshader opts})
 
 openWindow :: String -> (Int,Int) -> IO WindowHandle
 openWindow title (w,h) = do
@@ -165,7 +165,7 @@ simpleGLUTinit opts party ref = do
 idleFunction :: PRef -> IO ()
 idleFunction r = do
   state <- readIORef r
-  GLUT.postRedisplay (Just (windowHandle state))
+  GLUT.postRedisplay (windowHandle state)
 
 windowTitle :: String
 windowTitle = "pixelparty"
@@ -220,7 +220,7 @@ display r = do
   GL.glClear . sum . map fromIntegral $ [GL.gl_COLOR_BUFFER_BIT, GL.gl_DEPTH_BUFFER_BIT]
   GL.glDrawElements GL.gl_TRIANGLES 6 GL.gl_UNSIGNED_BYTE nullPtr
   GLUT.swapBuffers
-  GLUT.postRedisplay (Just (windowHandle state))
+  GLUT.postRedisplay (windowHandle state)
 
 main :: IO ()
 main = do
