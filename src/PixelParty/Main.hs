@@ -161,9 +161,7 @@ pixelparty opts = do
 handle :: SDL.Event -> P ()
 handle SDL.NoEvent = return ()
 handle SDL.Quit = stop
-handle (SDL.KeyDown keysym) = case SDL.symKey keysym of
-                                SDL.SDLK_ESCAPE -> stop
-                                _ -> return ()
+handle (SDL.KeyDown keysym) | SDL.symKey keysym == SDL.SDLK_ESCAPE = stop
 handle (SDL.VideoResize w h) = do 
   modify (\s -> s {currentWidth = w, currentHeight = h})
   s <- io $ W.resizeWindow w h
