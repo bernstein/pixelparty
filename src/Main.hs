@@ -18,7 +18,7 @@ import Data.IORef (newIORef, modifyIORef, readIORef)
 import Data.List (foldl')
 
 import qualified Graphics.Rendering.OpenGL.Raw as GL
-import qualified PixelParty.Texture2D as Tex
+import qualified Texture2D as Tex
 import qualified Data.Time as T
 import qualified Graphics.UI.SDL as SDL
 

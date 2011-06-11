@@ -20,7 +20,7 @@ source-repository head
 Executable pixelparty
     Main-is:            Main.hs
     other-modules:
-                        PixelParty.Texture2D
+                        Texture2D
                         CmdLine
                         Types
                         ShaderIncludes
