@@ -2,7 +2,7 @@ module Shader
   ( setShaderSource
   , loadProgram
   , loadProgramFrom
-  , reloadProgram
+  --, reloadProgram
   , uniformLoc
   , shader
   , vertexShader
@@ -60,6 +60,7 @@ loadProgramFrom path vs fs = do
   fragmentShader <- includeFiles path =<< readFile fs
   loadProgram vshader fragmentShader
 
+{-
 reloadProgram :: CmdLine -> PRef -> IO ()
 reloadProgram opts ref = do
   state <- readIORef ref
@@ -85,6 +86,7 @@ reloadProgram opts ref = do
     Just loc -> GL.glUniform2f loc (fromIntegral w) (fromIntegral h)
 
   print "reloadProgram : glBindVertexArray"
+-}
 
 vertexShader :: String
 vertexShader =

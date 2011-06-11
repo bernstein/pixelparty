@@ -33,5 +33,5 @@ Executable pixelparty
                   directory, time,
                   stb-image, bitmap, 
                   containers, array,
-                  OpenGLRaw, GLUT, 
+                  OpenGLRaw, SDL, mtl,
                   cmdargs
