@@ -4,7 +4,6 @@ module PixelParty.Main (pixelparty) where
 --   add ping-pong flag:
 --     render to texture. supply that texture as an input for the next frame
 
-import Control.Exception (bracket_)
 import Control.Monad (when, forM_, unless)
 import Control.Monad.State
 import qualified Data.Map as M
@@ -12,9 +11,6 @@ import qualified Data.Map as M
 import Foreign.Marshal.Array (allocaArray, peekArray, withArrayLen)
 import Foreign (Storable, nullPtr, withArray, sizeOf, castPtr, Ptr)
 import Foreign.C.String (peekCString, withCAString)
-
-import Data.IORef (newIORef, modifyIORef, readIORef)
-import Data.List (foldl')
 
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import qualified Data.Time as T
@@ -96,7 +92,7 @@ createShaders opts = do
               else includeFiles path =<< readFile (vshader opts)
   fs <- io $ includeFiles path =<< readFile (fshader opts)
 
-  errorCheckValue <- io $ GL.glGetError
+  errorCheckValue <- io GL.glGetError
 
   (v,f,p) <- io $ loadProgram vs fs
   io $ GL.glUseProgram p
@@ -139,17 +135,6 @@ mouseCB ref (GLUT.Position x y) = do
 windowTitle :: String
 windowTitle = "pixelparty"
 
-{-
-timerFunction :: PRef -> IO ()
-timerFunction r = do
-  state <- readIORef r
-  let tempString = windowTitle ++ ": " ++ show (4 * frameCount state) ++ " Frames Per Second @ " ++ show (currentWidth state) ++ " x " ++ show (currentHeight state)
-  GLUT.windowTitle GLUT.$= tempString
-
-  modifyIORef r (\s -> s { frameCount = 0 })
-  GLUT.addTimerCallback 250 (timerFunction r)
--}
-
 size as = fromIntegral (length as * sizeOf (head as))
 
 pixelparty :: CmdLine -> IO ()
@@ -159,10 +144,11 @@ pixelparty opts = do
   let st = defaultPartyState 
             { vertFile = vshader opts
             , fragFile = fshader opts
-            , startTime = now }
+            , startTime = now 
+            , fpsLastTime = now }
   runP st $ do
     initialize opts
-    mainloop (process >> render)
+    mainloop (process >> render >> fpsCounter)
     cleanup
   return ()
     where
@@ -194,7 +180,7 @@ stop = modify (\s -> s {done = True})
 cleanup :: P ()
 cleanup = do
   state <- get
-  errorCheckValue <- io $ GL.glGetError
+  errorCheckValue <- io GL.glGetError
 
   io $ GL.glUseProgram 0
   io $ GL.glDeleteProgram (programId state)
@@ -214,7 +200,7 @@ cleanup = do
   io $ withArrayLen (map fst (textures state)) $
     GL.glDeleteTextures . fromIntegral
 
-  errorCheckValue <- io $ GL.glGetError
+  errorCheckValue <- io GL.glGetError
 {-
   when (errorCheckValue /= GL.gl_NO_ERROR) $ do
     putStrLn "ERROR: Could not destroy the GL objects"
@@ -222,9 +208,22 @@ cleanup = do
 -}
   return ()
 
+fpsCounter :: P ()
+fpsCounter = do
+  c <- gets frameCount
+  if c > 49 then do
+      now <- io T.getCurrentTime
+      last <- gets fpsLastTime
+      let t = T.diffUTCTime now last
+          f = round (50/t)
+      modify (\s -> s{frameCount = 0, fpsLastTime = now})
+      io $ SDL.setCaption (windowTitle ++ "@" ++ show f ++ " fps") windowTitle
+    else modify (\s -> s{frameCount = frameCount s + 1})
+  return ()
+
 render :: P ()
 render = do
-  modify (\s -> s{frameCount = frameCount s + 1})
+
   state <- get
   io $ do
     now <- T.getCurrentTime

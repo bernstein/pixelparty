@@ -47,13 +47,14 @@ data PartyState = PartyState {
   , depthTest :: GL.GLenum
   -- , rasterizer -- viewport size, pos
   -- , draw
-  , frameCount :: !Int
   , currentWidth :: !Int -- unnecessary ?
   , currentHeight :: !Int -- unnecessary ?
   , vertFile :: FilePath -- unnecessary ?
   , fragFile :: FilePath -- unnecessary ?
   , startTime :: !T.UTCTime
   , done :: !Bool
+  , frameCount :: !Int
+  , fpsLastTime :: !T.UTCTime
   }
 
 defaultPartyState :: PartyState
@@ -68,12 +69,13 @@ defaultPartyState = PartyState
   , uniforms = M.empty
   , textures = []
   , depthTest = GL.gl_LESS
-  , frameCount = 0
   , currentWidth = 600
   , currentHeight = 600
   , vertFile = ""
   , fragFile = ""
   , startTime = T.UTCTime (T.ModifiedJulianDay 0) 0 -- 1858-11-17 00:00:00 UTC
   , done = False
+  , frameCount = 0
+  , fpsLastTime = T.UTCTime (T.ModifiedJulianDay 0) 0 -- 1858-11-17 00:00:00 UTC
   }
 
