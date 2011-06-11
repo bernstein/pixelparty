@@ -154,7 +154,7 @@ size as = fromIntegral (length as * sizeOf (head as))
 
 pixelparty :: CmdLine -> IO ()
 pixelparty opts = do
-  win <- W.openWindow' windowTitle (width opts , height opts)
+  win <- W.openWindow windowTitle (width opts , height opts)
   now <- T.getCurrentTime
   let st = defaultPartyState 
             { vertFile = vshader opts
@@ -166,9 +166,7 @@ pixelparty opts = do
     cleanup
   return ()
     where
-      mainloop a = do
-        isDone <- gets done
-        unless isDone (a >> mainloop a)
+      mainloop a = gets done >>= flip unless (a >> mainloop a)
 
       process = io SDL.pollEvent >>= handle
 
@@ -182,6 +180,7 @@ handle (SDL.KeyDown keysym) = case SDL.symKey keysym of
                                 _ -> return ()
 handle (SDL.VideoResize w h) = do 
   modify (\s -> s {currentWidth = w, currentHeight = h})
+  s <- io $ W.resizeWindow w h
   io $ GL.glViewport 0 0 (fromIntegral w) (fromIntegral h)
   us <- gets uniforms
   io $ case M.lookup "resolution" us of
