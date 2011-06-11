@@ -1,7 +1,7 @@
 cabal-version:      >= 1.6
 build-type:         Simple
 Name:               pixelparty
-version:            0.1
+version:            0.2
 description:        simple tool to experiment with glsl fragment shaders
 license:            GPL
 license-file:       LICENSE
@@ -17,8 +17,17 @@ source-repository head
   type: git
   location: git://github.com/bernstein/pixelparty.git
 
-Executable pixelparty
-    Main-is:            Main.hs
+library
+    exposed-modules:    PixelParty.Texture2D
+                        PixelParty.Main
+                        PixelParty.CmdLine
+                        PixelParty.Types
+                        PixelParty.ShaderIncludes
+                        PixelParty.Shader
+    hs-source-dirs:      src
+
+executable pixelparty
+    main-is:            Main.hs
     other-modules:
                         PixelParty.Texture2D
                         PixelParty.Main
