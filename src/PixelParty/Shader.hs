@@ -1,4 +1,4 @@
-module Shader
+module PixelParty.Shader
   ( setShaderSource
   , loadProgram
   , loadProgramFrom
@@ -8,14 +8,13 @@ module Shader
   , vertexShader
   ) where
 
-import Types
-import ShaderIncludes
+import PixelParty.Types
+import PixelParty.ShaderIncludes
 import Control.Monad (forM_, mapM, when)
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import Foreign (withArray, castPtr, Ptr, withMany)
 import Foreign.C.String (withCAStringLen, withCAString)
 import qualified Data.Map as M
-import Data.IORef (modifyIORef, readIORef)
 
 -- shaderInfoLog
 

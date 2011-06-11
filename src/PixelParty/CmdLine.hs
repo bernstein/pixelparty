@@ -1,9 +1,9 @@
-module CmdLine
+module PixelParty.CmdLine
   ( CmdLine(..)
   , cmdLine
   ) where
 
-import Types
+import PixelParty.Types
 import System.Console.CmdArgs
 
 showVersion = "1.0.0"

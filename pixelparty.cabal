@@ -20,11 +20,12 @@ source-repository head
 Executable pixelparty
     Main-is:            Main.hs
     other-modules:
-                        Texture2D
-                        CmdLine
-                        Types
-                        ShaderIncludes
-                        Shader
+                        PixelParty.Texture2D
+                        PixelParty.Main
+                        PixelParty.CmdLine
+                        PixelParty.Types
+                        PixelParty.ShaderIncludes
+                        PixelParty.Shader
     hs-source-dirs:      src
     ghc-options:         -O
 

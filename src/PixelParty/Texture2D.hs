@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-module Texture2D
+module PixelParty.Texture2D
   ( loadTexture
   , enableTexture
   ) where

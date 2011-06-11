@@ -1,7 +1,7 @@
-module Window
+module PixelParty.Window
 where
 
-import Types
+import PixelParty.Types
 import qualified Graphics.UI.SDL as SDL
 
 openWindow' :: String -> (Int,Int) -> IO SDL.Surface

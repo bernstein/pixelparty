@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
-module Types
+module PixelParty.Types
 where
 
 import System.Console.CmdArgs (Data, Typeable)
