@@ -1,21 +1,20 @@
-module Shader
+module PixelParty.Shader
   ( setShaderSource
   , loadProgram
   , loadProgramFrom
-  , reloadProgram
+  --, reloadProgram
   , uniformLoc
   , shader
   , vertexShader
   ) where
 
-import Types
-import ShaderIncludes
+import PixelParty.Types
+import PixelParty.ShaderIncludes
 import Control.Monad (forM_, mapM, when)
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import Foreign (withArray, castPtr, Ptr, withMany)
 import Foreign.C.String (withCAStringLen, withCAString)
 import qualified Data.Map as M
-import Data.IORef (modifyIORef, readIORef)
 
 -- shaderInfoLog
 
@@ -60,6 +59,7 @@ loadProgramFrom path vs fs = do
   fragmentShader <- includeFiles path =<< readFile fs
   loadProgram vshader fragmentShader
 
+{-
 reloadProgram :: CmdLine -> PRef -> IO ()
 reloadProgram opts ref = do
   state <- readIORef ref
@@ -85,6 +85,7 @@ reloadProgram opts ref = do
     Just loc -> GL.glUniform2f loc (fromIntegral w) (fromIntegral h)
 
   print "reloadProgram : glBindVertexArray"
+-}
 
 vertexShader :: String
 vertexShader =

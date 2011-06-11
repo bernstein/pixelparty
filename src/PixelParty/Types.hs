@@ -1,27 +1,26 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-module Types
+{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
+module PixelParty.Types
 where
 
 import System.Console.CmdArgs (Data, Typeable)
-import Data.IORef (IORef(..), newIORef, modifyIORef, readIORef)
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import qualified Data.Map as M
-import qualified Graphics.UI.GLUT as GLUT
 import qualified Data.Time as T
+import Control.Monad.State
 
 type GLFragmentShader = GL.GLuint
 type GLVertexShader = GL.GLuint
 type GLProgram = GL.GLuint
 type GLTextureUnit = GL.GLenum
 
---type ErrorIO a = ErrorT String IO a
+newtype P a = P (StateT PartyState IO a)
+  deriving (Functor, Monad, MonadIO, MonadState PartyState)
 
-type PRef = IORef PartyState
--- notes: type P a = ReaderT (IORef PartyState) IO a
--- or: 
--- newtype P a = P (ReaderT (IORef PartyState) IO a) 
---   deriving (Functor, Monad, MonadIO, MonadReader (IORef PartyState))
---   modify :: (PartyState -> PartyState) -> P ()
+io :: MonadIO m => IO a -> m a
+io = liftIO
+
+runP :: PartyState -> P a -> IO (a, PartyState)
+runP st (P a) = runStateT a st
 
 data CmdLine = Fragment 
   { fshader :: FilePath
@@ -51,10 +50,10 @@ data PartyState = PartyState {
   , frameCount :: !Int
   , currentWidth :: !Int -- unnecessary ?
   , currentHeight :: !Int -- unnecessary ?
-  , windowHandle :: Maybe WindowHandle
   , vertFile :: FilePath -- unnecessary ?
   , fragFile :: FilePath -- unnecessary ?
   , startTime :: !T.UTCTime
+  , done :: !Bool
   }
 
 defaultPartyState :: PartyState
@@ -72,11 +71,9 @@ defaultPartyState = PartyState
   , frameCount = 0
   , currentWidth = 600
   , currentHeight = 600
-  , windowHandle = Nothing
   , vertFile = ""
   , fragFile = ""
   , startTime = T.UTCTime (T.ModifiedJulianDay 0) 0 -- 1858-11-17 00:00:00 UTC
+  , done = False
   }
-
-type WindowHandle = GLUT.Window
 

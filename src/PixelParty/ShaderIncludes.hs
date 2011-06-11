@@ -1,4 +1,4 @@
-module ShaderIncludes 
+module PixelParty.ShaderIncludes 
   (
     includeFiles
   ) where
