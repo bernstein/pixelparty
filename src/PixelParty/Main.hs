@@ -55,8 +55,6 @@ createVBO =
                     1.0, -1.0, 0.0, 1.0 ]
       indices :: [GL.GLubyte]
       indices = [0,1,2,0,2,3]
-
-      size as = fromIntegral (length as * sizeOf (head as))
   in do
     vao <- io $ gen GL.glGenVertexArrays
     io $ GL.glBindVertexArray vao
@@ -86,15 +84,10 @@ createTextures imgs = do
 
 createShaders :: CmdLine -> P ()
 createShaders opts = do
-  let path = ".":include opts
-
-  vs <- io $ if null (vshader opts) then return vertexShader
-              else includeFiles path =<< readFile (vshader opts)
-  fs <- io $ includeFiles path =<< readFile (fshader opts)
-
   errorCheckValue <- io GL.glGetError
 
-  (v,f,p) <- io $ loadProgram vs fs
+  let path = ".":include opts
+  (v,f,p) <- io $ loadProgramFrom path (vshader opts) (fshader opts)
   io $ GL.glUseProgram p
   modify (\s -> s{programId = p, vertexShaderId = v, fragmentShaderId = f})
 
@@ -116,21 +109,6 @@ initialize opts = do
   io $ do
     GL.glDepthFunc (depthTest defaultPartyState)
     GL.glClearColor 0.0 0.0 0.0 0.0
-
-{-
-keyboardMouseCB ref k ks mod pos =
-  case (k,ks) of
-    (GLUT.Char '\ESC', GLUT.Down) -> GLUT.leaveMainLoop
-    (GLUT.Char 'r', GLUT.Down) -> reloadProgram opts ref
-    --(GLUT.Char 'R', GLUT.Down) -> resetTime opts ref
-    _ -> return () -- putStrLn ("k: " ++ show k ++ ", ks: " ++ show ks)
-
-mouseCB ref (GLUT.Position x y) = do
-  state <- readIORef ref
-  case M.lookup "mouse" (uniforms state) of
-    Nothing -> return ()
-    Just loc -> GL.glUniform2f loc (fromIntegral x) (fromIntegral y)
--}
 
 windowTitle :: String
 windowTitle = "pixelparty"
@@ -162,6 +140,7 @@ handle :: SDL.Event -> P ()
 handle SDL.NoEvent = return ()
 handle SDL.Quit = stop
 handle (SDL.KeyDown keysym) | SDL.symKey keysym == SDL.SDLK_ESCAPE = stop
+handle (SDL.KeyDown (SDL.Keysym SDL.SDLK_r [] _)) = reload
 handle (SDL.VideoResize w h) = do 
   modify (\s -> s {currentWidth = w, currentHeight = h})
   s <- io $ W.resizeWindow w h
@@ -174,6 +153,30 @@ handle _ = return ()
 
 stop :: P ()
 stop = modify (\s -> s {done = True})
+
+reload :: P ()
+reload = do
+  state <- get
+  let current = programId state
+      path = ".":[] -- TODO include opts
+  (v,f,p) <- io $ loadProgramFrom path (vertFile state) (fragFile state)
+
+  ok <- io $ linkStatus p
+  if ok then do
+      io $ GL.glUseProgram p
+      modify (\s -> s{programId = p, vertexShaderId = v, fragmentShaderId = f})
+      let names = ["resolution","time","mouse","tex0","tex1","tex2","tex3"]
+      ls <- io $ mapM (uniformLoc p) names
+      let m = M.fromList $ zip names ls
+      modify (\s -> s { uniforms = m })
+
+      io $ forM_ [0,1,2,3] $ \i ->
+        case M.lookup ("tex"++show i) m of
+          Nothing -> return ()
+          Just loc -> GL.glUniform1i loc i
+    else io $ do
+          print "Error: reload failed"
+          GL.glUseProgram current
 
 cleanup :: P ()
 cleanup = do
