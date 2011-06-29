@@ -20,13 +20,15 @@ module PixelParty.Shader
   , uniformLoc
   , shader
   , vertexShader
+  , linkStatus
+  , compileStatus
   ) where
 
 import PixelParty.Types
 import PixelParty.ShaderIncludes
 import Control.Monad (forM_, mapM, when)
 import qualified Graphics.Rendering.OpenGL.Raw as GL
-import Foreign (withArray, castPtr, Ptr, withMany)
+import Foreign (withArray, castPtr, Ptr, withMany, allocaArray, peekArray)
 import Foreign.C.String (withCAStringLen, withCAString)
 import qualified Data.Map as M
 
@@ -153,3 +155,10 @@ maybeSetUniform m set val = maybe (return ()) (`set` val) m
 -- programInfoLog :: GLProgram -> IO String
 -- programInfoLog p =
 
+compileStatus :: GLShader -> IO Bool
+compileStatus s = 
+  fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> GL.glGetShaderiv s GL.gl_COMPILE_STATUS buf >> peekArray 1 buf
+
+linkStatus :: GLProgram -> IO Bool
+linkStatus p = 
+  fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> GL.glGetProgramiv p GL.gl_LINK_STATUS buf >> peekArray 1 buf
