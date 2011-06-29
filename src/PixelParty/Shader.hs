@@ -1,3 +1,17 @@
+-- -----------------------------------------------------------------------------
+-- |
+-- Module      :  PixelParty.Shader
+-- Copyright   :  (c) Andreas-Christoph Bernstein 2011
+-- License     :  BSD3-style (see LICENSE)
+--
+-- Maintainer  :  andreas.bernstein@googlemail.com
+-- Stability   :  unstable
+-- Portability :  not portable
+--
+-- Helper functions to load GLSL shader.
+--
+--------------------------------------------------------------------------------
+
 module PixelParty.Shader
   ( setShaderSource
   , loadProgram
@@ -16,11 +30,13 @@ import Foreign (withArray, castPtr, Ptr, withMany)
 import Foreign.C.String (withCAStringLen, withCAString)
 import qualified Data.Map as M
 
+--------------------------------------------------------------------------------
 -- shaderInfoLog
 
 type GLStringLen = (Ptr GL.GLchar, GL.GLsizei)
 type GLShader = GL.GLuint
 
+-- | setShaderSource
 setShaderSource :: GLShader -> [String] -> IO ()
 setShaderSource shader srcs = do
    let len = fromIntegral . length $ srcs
@@ -100,6 +116,17 @@ vertexShader =
   ++ "  gl_Position = in_position;\n"
   ++ "  origin = vec3(0.0);\n"
   ++ "  raydir = vec3(in_position.x * 1.66667, in_position.y, -1.0);\n"
+  ++ "}\n"
+
+fragmentShader :: String
+fragmentShader =
+     "#version 330\n"
+  ++ "smooth in vec2 tc;\n"
+  ++ "out vec4 fragColor;\n"
+  ++ "void\n"
+  ++ "main(void)\n"
+  ++ "{\n"
+  ++ "  fragColor = vec4(tc,0.0,1.0);\n"
   ++ "}\n"
 
 withGLStringLen :: String -> (GLStringLen -> IO a) -> IO a
