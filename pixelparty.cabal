@@ -3,7 +3,7 @@ build-type:         Simple
 Name:               pixelparty
 version:            0.2
 description:        simple tool to experiment with glsl fragment shaders
-license:            GPL
+license:            BSD3
 license-file:       LICENSE
 category:           Graphics
 author:             Andreas-Christoph Bernstein
