@@ -179,6 +179,7 @@ reload = do
           print "Error: reload failed"
           GL.glUseProgram current
 
+-- | makes a screenshot and saves the image as "pixelparty.jpg"
 screenshot :: P ()
 screenshot = get >>= \s -> io $ Tex.screenshot "pixelparty.jpg" (currentWidth s) (currentHeight s)
 
