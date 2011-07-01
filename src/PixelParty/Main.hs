@@ -1,3 +1,17 @@
+-- -----------------------------------------------------------------------------
+-- |
+-- Module      :  PixelParty.Main
+-- Copyright   :  (c) Andreas-Christoph Bernstein 2011
+-- License     :  BSD3-style (see LICENSE)
+--
+-- Maintainer  :  andreas.bernstein@googlemail.com
+-- Stability   :  unstable
+-- Portability :  not portable
+--
+-- Draws fullscreen quad with a user supplied fragment shader.
+--
+--------------------------------------------------------------------------------
+
 module PixelParty.Main (pixelparty) where
 
 -- TODO:

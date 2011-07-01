@@ -1,3 +1,17 @@
+-- -----------------------------------------------------------------------------
+-- |
+-- Module      :  PixelParty.Window
+-- Copyright   :  (c) Andreas-Christoph Bernstein 2011
+-- License     :  BSD3-style (see LICENSE)
+--
+-- Maintainer  :  andreas.bernstein@googlemail.com
+-- Stability   :  unstable
+-- Portability :  not portable
+--
+-- Open opengl window.
+--
+--------------------------------------------------------------------------------
+
 module PixelParty.Window
   ( 
     openWindow

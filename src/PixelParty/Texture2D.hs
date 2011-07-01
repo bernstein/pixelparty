@@ -1,4 +1,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+-- -----------------------------------------------------------------------------
+-- |
+-- Module      :  PixelParty.Texture2D
+-- Copyright   :  (c) Andreas-Christoph Bernstein 2011
+-- License     :  BSD3-style (see LICENSE)
+--
+-- Maintainer  :  andreas.bernstein@googlemail.com
+-- Stability   :  unstable
+-- Portability :  not portable
+--
+-- Load, use and save textures.
+--
+--------------------------------------------------------------------------------
+
 module PixelParty.Texture2D
   ( loadTexture
   , enableTexture
