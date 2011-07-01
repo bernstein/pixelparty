@@ -111,6 +111,9 @@ createShaders opts = do
   let m = M.fromList $ zip names ls
   modify (\s -> s { uniforms = m })
 
+  io $ case M.lookup "resolution" m of
+    Nothing -> return ()
+    Just loc -> GL.glUniform2f loc (fromIntegral $ width opts) (fromIntegral $ height opts)
   io $ forM_ [0,1,2,3] $ \i ->
     case M.lookup ("tex"++show i) m of
       Nothing -> return ()
@@ -176,17 +179,21 @@ reload = do
   state <- get
   let current = programId state
       path = ".":[] -- TODO include opts
-  (v,f,p,g) <- io $ loadProgramFrom path (vertFile state) (fragFile state) (geomShFile state)
+  (v,f,g,p) <- io $ loadProgramFrom path (vertFile state) (fragFile state) (geomShFile state)
 
   ok <- io $ linkStatus p
   if ok then do
       io $ GL.glUseProgram p
-      modify (\s -> s{programId = p, vertexShaderId = v, fragmentShaderId = f})
+      modify (\s -> s { programId = p, vertexShaderId = v, fragmentShaderId = f
+                      , geometryShaderId = g})
       let names = ["resolution","time","mouse","tex0","tex1","tex2","tex3"]
       ls <- io $ mapM (uniformLoc p) names
       let m = M.fromList $ zip names ls
       modify (\s -> s { uniforms = m })
 
+      io $ case M.lookup "resolution" m of
+        Nothing -> return ()
+        Just loc -> GL.glUniform2f loc (fromIntegral $ currentWidth state) (fromIntegral $ currentHeight state)
       io $ forM_ [0,1,2,3] $ \i ->
         case M.lookup ("tex"++show i) m of
           Nothing -> return ()
