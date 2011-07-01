@@ -22,8 +22,9 @@ import qualified Data.Map as M
 import qualified Data.Time as T
 import Control.Monad.State
 
-type GLFragmentShader = GL.GLuint
 type GLVertexShader = GL.GLuint
+type GLGeometryShader = GL.GLuint
+type GLFragmentShader = GL.GLuint
 type GLProgram = GL.GLuint
 type GLTextureUnit = GL.GLenum
 
@@ -39,6 +40,7 @@ runP st (P a) = runStateT a st
 data CmdLine = Fragment 
   { fshader :: FilePath
   , vshader :: FilePath
+  , gshader :: FilePath
   , width :: Int
   , height :: Int
   , include :: [String]
@@ -51,6 +53,7 @@ data PartyState = PartyState {
   -- opengl stuff
   , vertexShaderId :: !GL.GLuint
   , fragmentShaderId :: !GL.GLuint
+  , geometryShaderId :: !GL.GLuint
   , programId       :: !GL.GLuint
   , vaoId :: !GL.GLuint
   , arrayBuffer   :: !GL.GLuint
@@ -65,6 +68,7 @@ data PartyState = PartyState {
   , currentHeight :: !Int -- unnecessary ?
   , vertFile :: FilePath -- unnecessary ?
   , fragFile :: FilePath -- unnecessary ?
+  , geomShFile :: FilePath -- unnecessary ?
   , startTime :: !T.UTCTime
   , done :: !Bool
   , frameCount :: !Int
@@ -76,6 +80,7 @@ defaultPartyState = PartyState
   { currentTime = 0
   , vertexShaderId = 0
   , fragmentShaderId = 0
+  , geometryShaderId = 0
   , programId = 0
   , vaoId = 0
   , arrayBuffer = 0
@@ -87,6 +92,7 @@ defaultPartyState = PartyState
   , currentHeight = 600
   , vertFile = ""
   , fragFile = ""
+  , geomShFile = ""
   , startTime = T.UTCTime (T.ModifiedJulianDay 0) 0 -- 1858-11-17 00:00:00 UTC
   , done = False
   , frameCount = 0

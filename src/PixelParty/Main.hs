@@ -101,9 +101,10 @@ createShaders opts = do
   errorCheckValue <- io GL.glGetError
 
   let path = ".":include opts
-  (v,f,p) <- io $ loadProgramFrom path (vshader opts) (fshader opts)
+  (v,f,g,p) <- io $ loadProgramFrom path (vshader opts) (fshader opts) (gshader opts)
   io $ GL.glUseProgram p
-  modify (\s -> s{programId = p, vertexShaderId = v, fragmentShaderId = f})
+  modify (\s -> s { programId = p, vertexShaderId = v, fragmentShaderId = f
+                  , geometryShaderId = g})
 
   let names = ["resolution","time","mouse","tex0","tex1","tex2","tex3"]
   ls <- io $ mapM (uniformLoc p) names
@@ -136,6 +137,7 @@ pixelparty opts = do
   let st = defaultPartyState 
             { vertFile = vshader opts
             , fragFile = fshader opts
+            , geomShFile = gshader opts
             , startTime = now 
             , fpsLastTime = now }
   runP st $ do
@@ -174,7 +176,7 @@ reload = do
   state <- get
   let current = programId state
       path = ".":[] -- TODO include opts
-  (v,f,p) <- io $ loadProgramFrom path (vertFile state) (fragFile state)
+  (v,f,p,g) <- io $ loadProgramFrom path (vertFile state) (fragFile state) (geomShFile state)
 
   ok <- io $ linkStatus p
   if ok then do
@@ -243,7 +245,6 @@ fpsCounter = do
 
 render :: P ()
 render = do
-
   state <- get
   io $ do
     now <- T.getCurrentTime

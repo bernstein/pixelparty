@@ -25,6 +25,7 @@ showVersion = "1.0.0"
 frag = Fragment
   { fshader = def &= args &= typ "FRAGMENTSHADER"
   , vshader = def &= help "Vertex Shader" &= typ "VERTEXSHADER"
+  , gshader =  def &= help "Geometry Shader" &= typ "GEOMETRYSHADER"
   , width = 600 &= typ "WIDTH"
   , height = 600 &= typ "HEIGHT"
   , include = def &= help "Include Path" &= typDir

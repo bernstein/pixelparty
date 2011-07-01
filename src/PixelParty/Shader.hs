@@ -58,24 +58,32 @@ shader ty src = do
 uniformLoc :: GLProgram -> String -> IO GL.GLint
 uniformLoc p name = withCAString name (GL.glGetUniformLocation p . castPtr)
 
-loadProgram :: String -> String -> 
-  IO (GLVertexShader, GLFragmentShader, GLProgram)
-loadProgram vs fs = do
+loadProgram :: String -> String -> Maybe String ->
+  IO (GLVertexShader, GLFragmentShader, GLGeometryShader, GLProgram)
+loadProgram vs fs mgs = do
+  progId <- GL.glCreateProgram
   v <- shader GL.gl_VERTEX_SHADER vs
   f <- shader GL.gl_FRAGMENT_SHADER fs
-  progId <- GL.glCreateProgram
   GL.glAttachShader progId v 
   GL.glAttachShader progId f 
-  GL.glLinkProgram  progId
-  return (v,f,progId)
+  g <- case mgs of 
+    Nothing -> return 0
+    Just gs -> do
+      g <- shader GL.gl_GEOMETRY_SHADER gs
+      GL.glAttachShader progId g
+      return g
 
-loadProgramFrom :: [String] -> FilePath -> FilePath -> 
-  IO (GLVertexShader, GLFragmentShader, GLProgram)
-loadProgramFrom path vs fs = do
+  GL.glLinkProgram  progId
+  return (v,f,g,progId)
+
+loadProgramFrom :: [String] -> FilePath -> FilePath -> FilePath ->
+  IO (GLVertexShader, GLFragmentShader, GLGeometryShader, GLProgram)
+loadProgramFrom path vs fs gs = do
   vshader <- if null vs then return vertexShader
               else includeFiles path =<< readFile vs
-  fragmentShader <- includeFiles path =<< readFile fs
-  loadProgram vshader fragmentShader
+  fshader <- includeFiles path =<< readFile fs
+  gshader <- if null gs then return Nothing else return . Just =<< includeFiles path =<< readFile gs
+  loadProgram vshader fshader gshader
 
 {-
 reloadProgram :: CmdLine -> PRef -> IO ()
@@ -86,7 +94,7 @@ reloadProgram opts ref = do
   --  (GL.glDeleteProgram . programId $ state)
 
   let path = ".":include opts
-  (v,f,p) <- loadProgramFrom path (vertFile state) (fragFile state)
+  (v,f,p) <- loadProgramFrom path (vertFile state) (fragFile state) (geomShFile state)
   modifyIORef ref (\state -> state {vertexShaderId = v, fragmentShaderId = f, programId = p})
   GL.glUseProgram p
 
