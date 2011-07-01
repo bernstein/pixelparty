@@ -15,6 +15,7 @@ import Data.Array.Storable (withStorableArray)
 
 import Data.Bitmap.IO
 import Codec.Image.STB (loadImage)
+import qualified Graphics.Imlib as I
 
 type GLTextureUnit = GL.GLenum
 type GLTextureObject = GL.GLuint
