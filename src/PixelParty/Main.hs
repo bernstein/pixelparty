@@ -141,6 +141,7 @@ handle SDL.NoEvent = return ()
 handle SDL.Quit = stop
 handle (SDL.KeyDown keysym) | SDL.symKey keysym == SDL.SDLK_ESCAPE = stop
 handle (SDL.KeyDown (SDL.Keysym SDL.SDLK_r [] _)) = reload
+handle (SDL.KeyDown (SDL.Keysym SDL.SDLK_s [] _)) = screenshot
 handle (SDL.VideoResize w h) = do 
   modify (\s -> s {currentWidth = w, currentHeight = h})
   s <- io $ W.resizeWindow w h
@@ -177,6 +178,10 @@ reload = do
     else io $ do
           print "Error: reload failed"
           GL.glUseProgram current
+
+-- | makes a screenshot and saves the image as "pixelparty.jpg"
+screenshot :: P ()
+screenshot = get >>= \s -> io $ Tex.screenshot "pixelparty.jpg" (currentWidth s) (currentHeight s)
 
 cleanup :: P ()
 cleanup = do

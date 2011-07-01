@@ -41,7 +41,7 @@ executable pixelparty
     Build-Depends:       
                   base, array, haskell98, 
                   directory, time,
-                  stb-image, bitmap, 
+                  stb-image, bitmap, Imlib,
                   containers, array,
                   OpenGLRaw, SDL, mtl,
                   cmdargs
