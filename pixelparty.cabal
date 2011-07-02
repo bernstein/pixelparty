@@ -1,7 +1,7 @@
 cabal-version:      >= 1.6
 build-type:         Simple
 Name:               pixelparty
-version:            0.2
+version:            0.2.1
 description:        simple tool to experiment with glsl fragment shaders
 license:            BSD3
 license-file:       LICENSE
