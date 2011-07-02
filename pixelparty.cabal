@@ -1,9 +1,9 @@
 cabal-version:      >= 1.6
 build-type:         Simple
 Name:               pixelparty
-version:            0.2
+version:            0.2.1
 description:        simple tool to experiment with glsl fragment shaders
-license:            GPL
+license:            BSD3
 license-file:       LICENSE
 category:           Graphics
 author:             Andreas-Christoph Bernstein
@@ -41,7 +41,7 @@ executable pixelparty
     Build-Depends:       
                   base, array, haskell98, 
                   directory, time,
-                  stb-image, bitmap, 
+                  stb-image, bitmap, Imlib,
                   containers, array,
                   OpenGLRaw, SDL, mtl,
                   cmdargs

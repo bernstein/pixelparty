@@ -1,7 +1,22 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+-- -----------------------------------------------------------------------------
+-- |
+-- Module      :  PixelParty.Texture2D
+-- Copyright   :  (c) Andreas-Christoph Bernstein 2011
+-- License     :  BSD3-style (see LICENSE)
+--
+-- Maintainer  :  andreas.bernstein@googlemail.com
+-- Stability   :  unstable
+-- Portability :  not portable
+--
+-- Load, use and save textures.
+--
+--------------------------------------------------------------------------------
+
 module PixelParty.Texture2D
   ( loadTexture
   , enableTexture
+  , screenshot
   ) where
 
 import Control.Applicative ((<$>), pure)
@@ -15,6 +30,7 @@ import Data.Array.Storable (withStorableArray)
 
 import Data.Bitmap.IO
 import Codec.Image.STB (loadImage)
+import qualified Graphics.Imlib as I
 
 type GLTextureUnit = GL.GLenum
 type GLTextureObject = GL.GLuint
@@ -71,4 +87,27 @@ formatPlusInternalFormat bm =
           2 -> (GL.gl_LUMINANCE_ALPHA, fromIntegral GL.gl_LUMINANCE_ALPHA)
           3 -> (GL.gl_RGB, fromIntegral GL.gl_RGB)
           4 -> (GL.gl_RGBA, fromIntegral GL.gl_RGBA)  
+
+readPixels :: Int -> Int -> IO I.ImlibImage
+readPixels w h =
+  let f = GL.gl_BGRA
+      t = GL.gl_UNSIGNED_BYTE 
+      size = (w*h*4)
+  in allocaArray (w*h*4) $ \buf -> do
+      GL.glPixelStorei GL.gl_PACK_ALIGNMENT 1
+      GL.glReadPixels 0 0 (fromIntegral w) (fromIntegral h) f t buf 
+      I.createImageUsingData w h buf
+
+getTexImage2d :: Int -> Int -> IO I.ImlibImage
+getTexImage2d w h =
+  let f = GL.gl_BGRA
+      t = GL.gl_UNSIGNED_BYTE 
+      size = (w*h*4)
+  in allocaArray (w*h*4) $ \buf -> do
+      GL.glPixelStorei GL.gl_PACK_ALIGNMENT 1
+      GL.glGetTexImage GL.gl_TEXTURE_2D 0 f t buf 
+      I.createImageUsingData w h buf
+
+screenshot :: FilePath -> Int -> Int -> IO ()
+screenshot file w h = readPixels w h >>= I.contextSetImage >> I.saveImage file
 
