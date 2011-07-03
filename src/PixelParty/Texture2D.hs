@@ -59,7 +59,7 @@ loadTexture path u = do
 
       return (t,u)
 
-enableTexture :: (GL.GLuint, GLTextureUnit) -> IO ()
+enableTexture :: (GLTextureObject, GLTextureUnit) -> IO ()
 enableTexture (t,u) = do
   GL.glActiveTexture u
   GL.glEnable GL.gl_TEXTURE_2D
