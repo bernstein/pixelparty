@@ -22,7 +22,8 @@ import qualified Data.Map as M
 import qualified Data.Time as T
 import Control.Monad.State
 
-type GLVertexShader = GL.GLuint
+newtype GLVertexShader = 
+  GLVertexShader { unGLVertexShader :: GL.GLuint }
 type GLGeometryShader = GL.GLuint
 newtype GLFragmentShader = 
   GLFragmentShader { unGLFragmentShader :: GL.GLuint }
@@ -79,8 +80,8 @@ data PartyState = PartyState {
 defaultPartyState :: PartyState
 defaultPartyState = PartyState
   { currentTime = 0
-  , vertexShaderId = 0
-  , fragmentShaderId = (GLFragmentShader 0)
+  , vertexShaderId = GLVertexShader 0
+  , fragmentShaderId = GLFragmentShader 0
   , geometryShaderId = 0
   , programId = (GLProgram 0)
   , vaoId = 0
