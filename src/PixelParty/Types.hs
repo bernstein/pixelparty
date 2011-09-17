@@ -24,7 +24,8 @@ import Control.Monad.State
 
 newtype GLVertexShader = 
   GLVertexShader { unGLVertexShader :: GL.GLuint }
-type GLGeometryShader = GL.GLuint
+newtype GLGeometryShader = 
+  GLGeometryShader { unGLGeometryShader :: GL.GLuint }
 newtype GLFragmentShader = 
   GLFragmentShader { unGLFragmentShader :: GL.GLuint }
 newtype GLProgram = GLProgram { unGLProgram :: GL.GLuint }
@@ -82,7 +83,7 @@ defaultPartyState = PartyState
   { currentTime = 0
   , vertexShaderId = GLVertexShader 0
   , fragmentShaderId = GLFragmentShader 0
-  , geometryShaderId = 0
+  , geometryShaderId = GLGeometryShader 0
   , programId = (GLProgram 0)
   , vaoId = 0
   , arrayBuffer = 0

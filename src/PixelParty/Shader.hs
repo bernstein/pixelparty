@@ -79,7 +79,7 @@ loadProgram vs fs mgs = do
       return g
 
   GL.glLinkProgram  progId
-  return (GLVertexShader v,GLFragmentShader f,g,GLProgram progId)
+  return (GLVertexShader v,GLFragmentShader f,GLGeometryShader g,GLProgram progId)
 
 -- | load a program from files containing a vertex shader, a fragment shader and
 -- maybe a geometry shader
