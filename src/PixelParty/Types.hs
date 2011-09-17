@@ -25,7 +25,7 @@ import Control.Monad.State
 type GLVertexShader = GL.GLuint
 type GLGeometryShader = GL.GLuint
 type GLFragmentShader = GL.GLuint
-type GLProgram = GL.GLuint
+newtype GLProgram = GLProgram { unGLProgram :: GL.GLuint }
 type GLTextureUnit = GL.GLenum
 
 newtype P a = P (StateT PartyState IO a)
@@ -51,10 +51,10 @@ data PartyState = PartyState {
     currentTime   :: !Float
 
   -- opengl stuff
-  , vertexShaderId :: !GL.GLuint
-  , fragmentShaderId :: !GL.GLuint
-  , geometryShaderId :: !GL.GLuint
-  , programId       :: !GL.GLuint
+  , vertexShaderId :: !GLVertexShader
+  , fragmentShaderId :: !GLFragmentShader
+  , geometryShaderId :: !GLGeometryShader
+  , programId       :: !GLProgram
   , vaoId :: !GL.GLuint
   , arrayBuffer   :: !GL.GLuint
   , elementBuffer :: !GL.GLuint
@@ -81,7 +81,7 @@ defaultPartyState = PartyState
   , vertexShaderId = 0
   , fragmentShaderId = 0
   , geometryShaderId = 0
-  , programId = 0
+  , programId = (GLProgram 0)
   , vaoId = 0
   , arrayBuffer = 0
   , elementBuffer = 0

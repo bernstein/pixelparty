@@ -59,7 +59,8 @@ shader ty src = do
 
 -- | returns the uniform location within a program object.
 uniformLoc :: GLProgram -> String -> IO GL.GLint
-uniformLoc p name = withCAString name (GL.glGetUniformLocation p . castPtr)
+uniformLoc (GLProgram p) name = 
+  withCAString name (GL.glGetUniformLocation p . castPtr)
 
 -- | load a GLProgram.
 loadProgram :: String -> String -> Maybe String ->
@@ -78,7 +79,7 @@ loadProgram vs fs mgs = do
       return g
 
   GL.glLinkProgram  progId
-  return (v,f,g,progId)
+  return (v,GLFragmentShader f,g,GLProgram progId)
 
 -- | load a program from files containing a vertex shader, a fragment shader and
 -- maybe a geometry shader
@@ -146,7 +147,7 @@ shaderInfoLog shader = do
 -- | Returns the information log for a program object.
 -- The function 'programInfoLog' is a wrapper around 'glGetProgramInfoLog'.
 programInfoLog :: GLProgram -> IO String
-programInfoLog program = do
+programInfoLog (GLProgram program) = do
   maxLength <- fmap (fromIntegral . head) $ allocaArray 1 $ \buf -> 
     GL.glGetProgramiv program GL.gl_INFO_LOG_LENGTH buf >> peekArray 1 buf
   allocaArray (fromIntegral maxLength) $ \infoLogPtr -> do
@@ -161,6 +162,6 @@ compileStatus s =
 
 -- | Was the program successfully linked?
 linkStatus :: GLProgram -> IO Bool
-linkStatus p = 
+linkStatus (GLProgram p) = 
   fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> 
     GL.glGetProgramiv p GL.gl_LINK_STATUS buf >> peekArray 1 buf
