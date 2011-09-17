@@ -26,10 +26,11 @@ module PixelParty.Shader
 
 import PixelParty.Types
 import PixelParty.ShaderIncludes
-import Control.Monad (forM_, mapM, when)
+import Control.Monad (forM_, mapM, when, (>=>))
 import qualified Graphics.Rendering.OpenGL.Raw as GL
-import Foreign (withArray, castPtr, Ptr, withMany, allocaArray, peekArray)
-import Foreign.C.String (withCAStringLen, withCAString)
+import Foreign (withArray, castPtr, Ptr, withMany, allocaArray, peekArray
+      , peek, alloca)
+import Foreign.C.String (withCAStringLen, withCAString, peekCAStringLen)
 import qualified Data.Map as M
 
 --------------------------------------------------------------------------------
@@ -38,7 +39,7 @@ import qualified Data.Map as M
 type GLStringLen = (Ptr GL.GLchar, GL.GLsizei)
 type GLShader = GL.GLuint
 
--- | setShaderSource
+-- | 'setShaderSource' is a wrapper around glShaderSource.
 setShaderSource :: GLShader -> [String] -> IO ()
 setShaderSource shader srcs = do
    let len = fromIntegral . length $ srcs
@@ -48,6 +49,7 @@ setShaderSource shader srcs = do
          withArray (map fromIntegral lengths) $ \lengthsBuf ->
             GL.glShaderSource shader len charBufsBuf lengthsBuf
 
+-- | 'shader'
 shader :: GL.GLenum -> String -> IO GLShader
 shader ty src = do
   s <- GL.glCreateShader ty
@@ -55,9 +57,11 @@ shader ty src = do
   GL.glCompileShader s
   return s
 
+-- | returns the uniform location within a program object.
 uniformLoc :: GLProgram -> String -> IO GL.GLint
 uniformLoc p name = withCAString name (GL.glGetUniformLocation p . castPtr)
 
+-- | load a GLProgram.
 loadProgram :: String -> String -> Maybe String ->
   IO (GLVertexShader, GLFragmentShader, GLGeometryShader, GLProgram)
 loadProgram vs fs mgs = do
@@ -76,42 +80,15 @@ loadProgram vs fs mgs = do
   GL.glLinkProgram  progId
   return (v,f,g,progId)
 
-loadProgramFrom :: [String] -> FilePath -> FilePath -> FilePath ->
+-- | load a program from files containing a vertex shader, a fragment shader and
+-- maybe a geometry shader
+loadProgramFrom :: [FilePath] -> FilePath -> FilePath -> FilePath ->
   IO (GLVertexShader, GLFragmentShader, GLGeometryShader, GLProgram)
 loadProgramFrom path vs fs gs = do
-  vshader <- if null vs then return vertexShader
-              else includeFiles path =<< readFile vs
+  vshader <- if null vs then return vertexShader else includeFiles path =<< readFile vs
   fshader <- includeFiles path =<< readFile fs
   gshader <- if null gs then return Nothing else return . Just =<< includeFiles path =<< readFile gs
   loadProgram vshader fshader gshader
-
-{-
-reloadProgram :: CmdLine -> PRef -> IO ()
-reloadProgram opts ref = do
-  state <- readIORef ref
-  let oldProgram = programId state
-  --when (0 /= programId state) 
-  --  (GL.glDeleteProgram . programId $ state)
-
-  let path = ".":include opts
-  (v,f,p) <- loadProgramFrom path (vertFile state) (fragFile state) (geomShFile state)
-  modifyIORef ref (\state -> state {vertexShaderId = v, fragmentShaderId = f, programId = p})
-  GL.glUseProgram p
-
-  -- \val loc -> GL.glUniform1i loc val == flip GL.glUniform1i
-  forM_ [0,1,2,3] $ \i ->
-    case M.lookup ("tex"++show i) (uniforms state) of
-      Nothing -> return ()
-      Just loc -> GL.glUniform1i loc i
-
-  w <- currentWidth `fmap` readIORef ref
-  h <- currentHeight `fmap` readIORef ref
-  case M.lookup "resolution" (uniforms state) of
-    Nothing -> return ()
-    Just loc -> GL.glUniform2f loc (fromIntegral w) (fromIntegral h)
-
-  print "reloadProgram : glBindVertexArray"
--}
 
 vertexShader :: String
 vertexShader =
@@ -156,17 +133,28 @@ maybeSetUniform m set val = maybe (return ()) (`set` val) m
 --          glUseProgram p 
 --          saveInPref (v,f,p)
 
--- glGetShaderInfoLog
+-- | Wrapper around glGetShaderInfoLog
+shaderInfoLog :: GLShader -> IO String
+shaderInfoLog shader = do
+  maxLength <- fmap (fromIntegral . head) $ allocaArray 1 $ \buf -> 
+    GL.glGetShaderiv shader GL.gl_INFO_LOG_LENGTH buf >> peekArray 1 buf
+  allocaArray (fromIntegral maxLength) $ \infoLogPtr ->
+    alloca $ \lengthPtr -> do
+      GL.glGetShaderInfoLog shader maxLength lengthPtr infoLogPtr
+      len <- peek lengthPtr
+      peekCAStringLen (castPtr infoLogPtr, fromIntegral len)
 
--- shaderInfoLog :: GLShader -> IO String
--- shaderInfoLog sh =
 -- programInfoLog :: GLProgram -> IO String
 -- programInfoLog p =
 
+-- | Was the shader successfully compiled?
 compileStatus :: GLShader -> IO Bool
 compileStatus s = 
-  fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> GL.glGetShaderiv s GL.gl_COMPILE_STATUS buf >> peekArray 1 buf
+  fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> 
+    GL.glGetShaderiv s GL.gl_COMPILE_STATUS buf >> peekArray 1 buf
 
+-- | Was the program successfully linked?
 linkStatus :: GLProgram -> IO Bool
 linkStatus p = 
-  fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> GL.glGetProgramiv p GL.gl_LINK_STATUS buf >> peekArray 1 buf
+  fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> 
+    GL.glGetProgramiv p GL.gl_LINK_STATUS buf >> peekArray 1 buf
