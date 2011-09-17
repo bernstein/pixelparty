@@ -143,8 +143,15 @@ shaderInfoLog shader = do
       GL.glGetShaderInfoLog shader maxLength nullPtr infoLogPtr
       peekCAString (castPtr infoLogPtr)
 
--- programInfoLog :: GLProgram -> IO String
--- programInfoLog p =
+-- | Returns the information log for a program object.
+-- The function 'programInfoLog' is a wrapper around 'glGetProgramInfoLog'.
+programInfoLog :: GLProgram -> IO String
+programInfoLog program = do
+  maxLength <- fmap (fromIntegral . head) $ allocaArray 1 $ \buf -> 
+    GL.glGetProgramiv program GL.gl_INFO_LOG_LENGTH buf >> peekArray 1 buf
+  allocaArray (fromIntegral maxLength) $ \infoLogPtr -> do
+      GL.glGetProgramInfoLog program maxLength nullPtr infoLogPtr
+      peekCAString (castPtr infoLogPtr)
 
 -- | Was the shader successfully compiled?
 compileStatus :: GLShader -> IO Bool
