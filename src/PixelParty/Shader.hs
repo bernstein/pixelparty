@@ -29,8 +29,8 @@ import PixelParty.ShaderIncludes
 import Control.Monad (forM_, mapM, when, (>=>))
 import qualified Graphics.Rendering.OpenGL.Raw as GL
 import Foreign (withArray, castPtr, Ptr, withMany, allocaArray, peekArray
-      , peek, alloca)
-import Foreign.C.String (withCAStringLen, withCAString, peekCAStringLen)
+      , nullPtr)
+import Foreign.C.String (withCAStringLen, withCAString, peekCAStringLen, peekCAString)
 import qualified Data.Map as M
 
 --------------------------------------------------------------------------------
@@ -133,16 +133,15 @@ maybeSetUniform m set val = maybe (return ()) (`set` val) m
 --          glUseProgram p 
 --          saveInPref (v,f,p)
 
--- | Wrapper around glGetShaderInfoLog
+-- | Returns the information log for a shader object.
+-- The function 'shaderInfoLog' is a wrapper around 'glGetShaderInfoLog'.
 shaderInfoLog :: GLShader -> IO String
 shaderInfoLog shader = do
   maxLength <- fmap (fromIntegral . head) $ allocaArray 1 $ \buf -> 
     GL.glGetShaderiv shader GL.gl_INFO_LOG_LENGTH buf >> peekArray 1 buf
-  allocaArray (fromIntegral maxLength) $ \infoLogPtr ->
-    alloca $ \lengthPtr -> do
-      GL.glGetShaderInfoLog shader maxLength lengthPtr infoLogPtr
-      len <- peek lengthPtr
-      peekCAStringLen (castPtr infoLogPtr, fromIntegral len)
+  allocaArray (fromIntegral maxLength) $ \infoLogPtr -> do
+      GL.glGetShaderInfoLog shader maxLength nullPtr infoLogPtr
+      peekCAString (castPtr infoLogPtr)
 
 -- programInfoLog :: GLProgram -> IO String
 -- programInfoLog p =
