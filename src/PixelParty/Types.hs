@@ -17,10 +17,13 @@ module PixelParty.Types
 where
 
 import System.Console.CmdArgs (Data, Typeable)
-import qualified Graphics.Rendering.OpenGL.Raw as GL
+import Graphics.GL.Core41 as GL
+import Graphics.GL.Types as GL
+import qualified Graphics.UI.SDL as SDL
 import qualified Data.Map as M
 import qualified Data.Time as T
 import Control.Monad.State
+import Foreign (nullPtr)
 
 type GLVertexShader = GL.GLuint
 type GLGeometryShader = GL.GLuint
@@ -29,7 +32,7 @@ type GLProgram = GL.GLuint
 type GLTextureUnit = GL.GLenum
 
 newtype P a = P (StateT PartyState IO a)
-  deriving (Functor, Monad, MonadIO, MonadState PartyState)
+  deriving (Functor, Applicative, Monad, MonadIO, MonadState PartyState)
 
 io :: MonadIO m => IO a -> m a
 io = liftIO
@@ -73,6 +76,7 @@ data PartyState = PartyState {
   , done :: !Bool
   , frameCount :: !Int
   , fpsLastTime :: !T.UTCTime
+  , sdlWindow :: !SDL.Window
   }
 
 defaultPartyState :: PartyState
@@ -87,7 +91,7 @@ defaultPartyState = PartyState
   , elementBuffer = 0
   , uniforms = M.empty
   , textures = []
-  , depthTest = GL.gl_LESS
+  , depthTest = GL.GL_LESS
   , currentWidth = 600
   , currentHeight = 600
   , vertFile = ""
@@ -97,5 +101,6 @@ defaultPartyState = PartyState
   , done = False
   , frameCount = 0
   , fpsLastTime = T.UTCTime (T.ModifiedJulianDay 0) 0 -- 1858-11-17 00:00:00 UTC
+  , sdlWindow = nullPtr
   }
 

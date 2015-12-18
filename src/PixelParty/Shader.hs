@@ -27,7 +27,8 @@ module PixelParty.Shader
 import PixelParty.Types
 import PixelParty.ShaderIncludes
 import Control.Monad (forM_, mapM, when)
-import qualified Graphics.Rendering.OpenGL.Raw as GL
+import Graphics.GL.Core41 as GL
+import Graphics.GL.Types as GL
 import Foreign (withArray, castPtr, Ptr, withMany, allocaArray, peekArray)
 import Foreign.C.String (withCAStringLen, withCAString)
 import qualified Data.Map as M
@@ -62,14 +63,14 @@ loadProgram :: String -> String -> Maybe String ->
   IO (GLVertexShader, GLFragmentShader, GLGeometryShader, GLProgram)
 loadProgram vs fs mgs = do
   progId <- GL.glCreateProgram
-  v <- shader GL.gl_VERTEX_SHADER vs
-  f <- shader GL.gl_FRAGMENT_SHADER fs
+  v <- shader GL.GL_VERTEX_SHADER vs
+  f <- shader GL.GL_FRAGMENT_SHADER fs
   GL.glAttachShader progId v 
   GL.glAttachShader progId f 
   g <- case mgs of 
     Nothing -> return 0
     Just gs -> do
-      g <- shader GL.gl_GEOMETRY_SHADER gs
+      g <- shader GL.GL_GEOMETRY_SHADER gs
       GL.glAttachShader progId g
       return g
 
@@ -165,8 +166,8 @@ maybeSetUniform m set val = maybe (return ()) (`set` val) m
 
 compileStatus :: GLShader -> IO Bool
 compileStatus s = 
-  fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> GL.glGetShaderiv s GL.gl_COMPILE_STATUS buf >> peekArray 1 buf
+  fmap ((==fromIntegral GL.GL_TRUE). head) $ allocaArray 1 $ \buf -> GL.glGetShaderiv s GL.GL_COMPILE_STATUS buf >> peekArray 1 buf
 
 linkStatus :: GLProgram -> IO Bool
 linkStatus p = 
-  fmap ((==fromIntegral GL.gl_TRUE). head) $ allocaArray 1 $ \buf -> GL.glGetProgramiv p GL.gl_LINK_STATUS buf >> peekArray 1 buf
+  fmap ((==fromIntegral GL.GL_TRUE). head) $ allocaArray 1 $ \buf -> GL.glGetProgramiv p GL.GL_LINK_STATUS buf >> peekArray 1 buf

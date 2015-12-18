@@ -14,15 +14,18 @@
 --------------------------------------------------------------------------------
 
 module PixelParty.Texture2D
-  ( loadTexture
-  , enableTexture
-  , screenshot
-  ) where
+--  ( loadTexture
+--  , enableTexture
+--  , screenshot
+--  ) where
+where
 
+{-
 import Control.Applicative ((<$>), pure)
 import Data.Array.Unboxed
-import qualified Graphics.Rendering.OpenGL.Raw as GL
 import Foreign.Storable (Storable, sizeOf)
+import Graphics.GL.Core41 as GL
+import Graphics.GL.Types as GL
 import Foreign.Marshal.Array (withArray, allocaArray, peekArray, withArrayLen)
 import Foreign (nullPtr, plusPtr, sizeOf, castPtr, Ptr, withMany)
 import Data.Array.MArray (thaw)
@@ -110,4 +113,4 @@ getTexImage2d w h =
 
 screenshot :: FilePath -> Int -> Int -> IO ()
 screenshot file w h = readPixels w h >>= I.contextSetImage >> I.saveImage file
-
+-}
