@@ -107,7 +107,7 @@ createShaders opts = do
 
   let path = ".":include opts
   (v,f,g,p) <- io $ loadProgramFrom path (vshader opts) (fshader opts) (gshader opts)
-  io $ GL.glUseProgram p
+  io $ GL.glUseProgram (unGLProgram p)
   modify (\s -> s { programId = p, vertexShaderId = v, fragmentShaderId = f
                   , geometryShaderId = g})
 
@@ -192,7 +192,7 @@ reload = do
 
   ok <- io $ linkStatus p
   if ok then do
-      io $ GL.glUseProgram p
+      io $ GL.glUseProgram (unGLProgram p)
       modify (\s -> s { programId = p, vertexShaderId = v, fragmentShaderId = f
                       , geometryShaderId = g})
       let names = ["resolution","time","mouse","tex0","tex1","tex2","tex3"]
@@ -209,7 +209,7 @@ reload = do
           Just loc -> GL.glUniform1i loc i
     else io $ do
           print "Error: reload failed"
-          GL.glUseProgram current
+          GL.glUseProgram (unGLProgram current)
 
 -- | makes a screenshot and saves the image as "pixelparty.jpg"
 screenshot :: P ()
@@ -221,7 +221,7 @@ cleanup = do
   errorCheckValue <- io GL.glGetError
 
   io $ GL.glUseProgram 0
-  io $ GL.glDeleteProgram (programId state)
+  io . GL.glDeleteProgram . unGLProgram . programId $ state
 
   io $ GL.glDisableVertexAttribArray 0
 
